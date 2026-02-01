@@ -54,7 +54,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.common)
@@ -68,10 +67,17 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+
+
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.navigation.compose.v285)
 
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
 
 }
