@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 class MusicViewModel(
     private val musicRepository: MusicRepository
 ): ViewModel(){
+
     val songs: StateFlow<List<Song>> = musicRepository.observeSongs().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

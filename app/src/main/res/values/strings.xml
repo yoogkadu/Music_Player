@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">Music Player</string>
     <string name="options">options</string>
+
+
+    <string name="perm_audio_rationale">This app needs access to your audio files so you can play your local music.</string>
+    <string name="perm_audio_denied">It seems you permanently declined access to your music. Please enable it in app settings.</string>
+
+    <string name="perm_notification_rationale">We need notification access to show your music controls on the lock screen.</string>
+    <string name="perm_notification_denied">Notifications are blocked. Please enable them in settings to see playback controls.</string>
+
+    <string name="ok">OK</string>
+    <string name="settings">Settings</string>
 </resources>
