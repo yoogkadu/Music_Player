@@ -1,5 +1,6 @@
 package com.example.musicplayer
 
+import android.app.Application
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
@@ -14,7 +15,11 @@ object AppViewModelProvider{
             MusicViewModel(MusicApplication().container.musicRepository)
         }
         initializer {
-            BootStrapViewModel(MusicApplication().container.musicRepository)
+            val application = MusicApplication()
+            BootStrapViewModel(application.container.musicRepository,
+                application.container.mapper,
+                application.container.LocalApplication
+                )
         }
     }
 }

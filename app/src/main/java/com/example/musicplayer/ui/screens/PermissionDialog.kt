@@ -1,19 +1,17 @@
 package com.example.musicplayer.ui.screens
 
-import android.Manifest
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.musicplayer.R
-import com.example.musicplayer.permission.AppPermission
 import com.example.musicplayer.permission.AudioDescriptionProvider
 import com.example.musicplayer.permission.PermissionDescriptionProvider
 
@@ -27,23 +25,37 @@ fun PermissionDialog (
     modifier: Modifier = Modifier
 ) {
     AlertDialog(
+        modifier = modifier,
         onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Permission Required", fontWeight = FontWeight.Bold, fontSize = 22.sp,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        text = {
+            Text(text = stringResource(
+                permissionTextProvider.getDescriptionRes(
+                    isPermanentlyDeclined=isPermanentlyDeclined)),
+                fontSize =15.sp)
+        },
         confirmButton = {
             Button(
-                onClick = {}
+                onClick = {
+                    if (isPermanentlyDeclined) {
+                        onGoToAppSettingsClick()
+                    } else {
+                        onOkClick()
+                    }
+                }
             ) {
-                Text("Grant Permission")
+                Text(if (isPermanentlyDeclined) "Open Settings" else "Grant Permission")
             }
 
         },
-        title = {
-            Text(text = stringResource(permissionTextProvider.getDescriptionRes(isPermanentlyDeclined=isPermanentlyDeclined)), fontSize =15.sp)
-        },
-        modifier = modifier,
         dismissButton = {
             Button(
                 onClick = {
-                    
+                    onDismiss()
                 }
             ) {
                 Text("Dismiss")
@@ -58,9 +70,9 @@ fun PermissionDialog (
 @Composable
 private fun SeeDismissDialog() {
     PermissionDialog(
-        AudioDescriptionProvider(),
+        permissionTextProvider = AudioDescriptionProvider(),
         isPermanentlyDeclined = false,
-        onDismiss = {  },
+        onDismiss = { /* Preview: nothing happens */ },
         onOkClick = { },
         onGoToAppSettingsClick = { }
     )

@@ -1,8 +1,6 @@
 package com.example.musicplayer.ui.screens
 
 import android.app.Activity
-import android.app.Dialog
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -16,26 +14,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.musicplayer.AppViewModelProvider
-import com.example.musicplayer.MainActivity
 import com.example.musicplayer.permission.AppPermission
 import com.example.musicplayer.permission.AudioDescriptionProvider
 import com.example.musicplayer.permission.NotificationDescriptionProvider
-import com.example.musicplayer.ui.viewModels.BootStrapViewModel
+import com.example.musicplayer.permission.PlatformPermissionMapper
 
 @Composable
 fun PermissionScreen(modifier: Modifier=Modifier,
-                     onDismiss: () -> Unit,
-                     dialogQueue: List<AppPermission> = mutableListOf(),
+                     dialogQueue: List<AppPermission> = emptyList(),
+                     mapper: PlatformPermissionMapper,
+                     onDismiss: (AppPermission) -> Unit,
                      onOkClick: (AppPermission) -> Unit,
-                     onGrantClick: () ->Unit
+                     onGrantClick: () ->Unit,
 ){
     val activity  = LocalActivity.current
     Column(
@@ -56,23 +50,33 @@ fun PermissionScreen(modifier: Modifier=Modifier,
         }
 
     }
-    dialogQueue.forEach {permission ->
+    dialogQueue.
+    reversed().
+    forEach {permission ->
+        val manifestPermission = mapper.map(permission)
      PermissionDialog(
          permissionTextProvider = when (permission) {
-                 AppPermission.READ_AUDIO , AppPermission.READ_EXTERNAL_STORAGE-> AudioDescriptionProvider()
-                 AppPermission.POST_NOTIFICATIONS -> NotificationDescriptionProvider()
+                 AppPermission.AudioLibrary-> AudioDescriptionProvider()
+                 AppPermission.Notification -> NotificationDescriptionProvider()
          }
          ,
          isPermanentlyDeclined = activity?.let {
-             !shouldShowRequestPermissionRationale(it, permission.name)
+             act-> manifestPermission.any{
+                 manifestString ->
+             !shouldShowRequestPermissionRationale(act, manifestString)
+            }
          } ?: false,
-         onDismiss = onDismiss,
+         onDismiss = {
+             onDismiss(permission)
+                     },
          onOkClick = {
              onOkClick(permission)
          },
          onGoToAppSettingsClick = {
              activity?.openAppSettings()
+             onDismiss(permission)
                                   },
+
      )
     }
 
@@ -87,15 +91,16 @@ fun Activity.openAppSettings(){
 
 
 
-@Preview(showBackground =true)
-@Composable
-private fun PermissionScreenPreview() {
-    PermissionScreen(
-        onDismiss = {},
-        dialogQueue = listOf(AppPermission.READ_AUDIO),
-        onOkClick = {},
-        onGrantClick = {}
-
-    )
-}
-
+//@Preview(showBackground =true)
+//@Composable
+//private fun PermissionScreenPreview() {
+//    PermissionScreen(
+//        onDismiss = {},
+//        dialogQueue = listOf(AppPermission.AudioLibrary),
+//        onOkClick = {},
+//        onGrantClick = {},
+//        mapper =
+//
+//    )
+//}
+//

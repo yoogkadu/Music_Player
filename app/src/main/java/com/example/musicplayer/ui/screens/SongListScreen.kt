@@ -3,6 +3,7 @@ package com.example.musicplayer.ui.screens
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -18,6 +20,7 @@ import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
@@ -31,10 +34,27 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 
 @Composable
-fun SongListScreen(modifier: Modifier = Modifier,songList: List<Song>) {
-    LazyColumn(modifier=modifier.fillMaxSize()) {
-        items(songList){
-            SongCard(Modifier,it)
+fun SongListScreen(modifier: Modifier = Modifier,songList: List<Song>,
+                   isLoading : Boolean) {
+    if(isLoading){
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp
+            )
+        }
+    }
+    else if (songList.isEmpty()){
+        Text(stringResource(R.string.no_songs_found))
+    }
+    else{
+        LazyColumn(modifier = modifier.fillMaxSize()) {
+            items(songList) {
+                SongCard(Modifier, it)
+            }
         }
     }
 }
@@ -82,5 +102,5 @@ private fun SongListScreenPreview() {
         Song(id = "2", title = "Midnight City", artist = "M83",duration = 3000L, uri = null, albumArtUri = null, album = ""),
         Song(id = "3", title = "Starboy", artist = "The Weeknd",duration = 3000L, uri = null, albumArtUri = null, album = "")
     )
-    SongListScreen(Modifier,mockSongs)
+    SongListScreen(Modifier,emptyList(),isLoading = false)
 }

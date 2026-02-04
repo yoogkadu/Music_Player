@@ -1,8 +1,8 @@
 package com.example.musicplayer.data
 
-sealed class BootstrapState {
-    object NeedsPermission: BootstrapState()
-    object Loading : BootstrapState()
-    object Ready : BootstrapState()
-    data class Error(val message: String) : BootstrapState()
+sealed class BootStrapState {
+    object NeedsPermission: BootStrapState()
+    object Loading : BootStrapState()
+    object Ready : BootStrapState()
+    data class Error(val message: String) : BootStrapState()
 }
