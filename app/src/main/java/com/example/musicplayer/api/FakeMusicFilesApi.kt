@@ -23,7 +23,8 @@ class FakeMusicFilesApi: MusicFilesApi {
                 duration = 180_000,
                 uri = Uri.EMPTY,
                 albumArtUri = Uri.EMPTY,
-                album = "Unknown"
+                album = "Unknown",
+                albumArtist = "Unknown"
             ),
             Song(
                 id = "2",
@@ -32,7 +33,8 @@ class FakeMusicFilesApi: MusicFilesApi {
                 duration = 210_000,
                 uri = Uri.EMPTY,
                 albumArtUri = "https://picsum.photos/200".toUri(),
-                album = "Unknown"
+                album = "Unknown",
+                albumArtist = "Unknown",
             )
         )
         _songFlow.value = songList

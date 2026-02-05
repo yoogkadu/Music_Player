@@ -16,7 +16,7 @@ object AppViewModelProvider{
         }
         initializer {
             val application = MusicApplication()
-            BootStrapViewModel(application.container.musicRepository,
+            BootStrapViewModel(
                 application.container.mapper,
                 application.container.LocalApplication
                 )

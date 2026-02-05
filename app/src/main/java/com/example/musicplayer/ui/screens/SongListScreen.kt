@@ -98,9 +98,9 @@ private fun SongListScreenPreview() {
     val mockSongs = listOf(
         Song(id = "1", title = "Bohemian Rhapsody",
             artist = "Queen", duration = 3000L, 
-            uri = null, albumArtUri = "".toUri(),album =""),
-        Song(id = "2", title = "Midnight City", artist = "M83",duration = 3000L, uri = null, albumArtUri = null, album = ""),
-        Song(id = "3", title = "Starboy", artist = "The Weeknd",duration = 3000L, uri = null, albumArtUri = null, album = "")
+            uri = null, albumArtUri = "".toUri(),album ="", albumArtist = "Unknown"),
+        Song(id = "2", title = "Midnight City", artist = "M83",duration = 3000L, uri = null, albumArtUri = null, album = "", albumArtist = "Unknown"),
+        Song(id = "3", title = "Starboy", artist = "The Weeknd",duration = 3000L, uri = null, albumArtUri = null, album = "", albumArtist = "Unknown")
     )
     SongListScreen(Modifier,emptyList(),isLoading = false)
 }

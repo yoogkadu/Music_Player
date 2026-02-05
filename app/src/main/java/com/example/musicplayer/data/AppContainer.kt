@@ -2,6 +2,7 @@ package com.example.musicplayer.data
 
 import android.app.Application
 import android.content.Context
+import com.example.musicplayer.api.AndroidMusicFilesApi
 import com.example.musicplayer.api.FakeMusicFilesApi
 import com.example.musicplayer.permission.AndroidPermissionMapper
 import com.example.musicplayer.permission.PlatformPermissionMapper
@@ -15,7 +16,7 @@ interface AppContainer{
 class AppDataContainer(private val context: Context) : AppContainer {
 
     override val musicRepository: MusicRepository by lazy {
-        MainMusicRepository(musicFilesApi = FakeMusicFilesApi())
+        MainMusicRepository(musicFilesApi = AndroidMusicFilesApi(context))
     }
     override val mapper: PlatformPermissionMapper by lazy {
         AndroidPermissionMapper()
