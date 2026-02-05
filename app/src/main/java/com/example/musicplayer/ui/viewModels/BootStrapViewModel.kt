@@ -17,7 +17,6 @@ class BootStrapViewModel(
     val application : Application
 
 ) : ViewModel(){
-
     private val _uiState = MutableStateFlow<BootStrapState>(BootStrapState.NeedsPermission)
     val uiState= _uiState.asStateFlow()
     val visiblePermissionDialogQueue= mutableStateListOf<AppPermission>()

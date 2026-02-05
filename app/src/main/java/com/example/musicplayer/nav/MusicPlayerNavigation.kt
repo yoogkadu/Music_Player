@@ -90,7 +90,10 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostCon
             SongListScreen(
                 modifier = modifier,
                 songList = musicUiState.value,
-                isLoading = musicLoadingState.value
+                isLoading = musicLoadingState.value,
+                onSongClick = {
+                    song -> musicViewModel.playSong(song)
+                }
             )
         }
 

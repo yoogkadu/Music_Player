@@ -2,7 +2,6 @@ package com.example.musicplayer.api
 
 import android.content.ContentUris
 import android.content.Context
-import android.database.Cursor
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.net.toUri
@@ -12,8 +11,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import okhttp3.Dispatcher
-import java.lang.Exception
 
 class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
     private val _songFlow = MutableStateFlow<List<Song>>(emptyList())
@@ -76,7 +73,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                                 title = title,
                                 artist = artist,
                                 album = album,
-                                duration = duration.toLong(),
+                                duration = duration,
                                 uri = contentUri,
                                 albumArtUri = albumArtUri,
                                 albumArtist = albumArtist
@@ -87,7 +84,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
 
 
                 }
-                catch (e: kotlin.Exception){
+                catch (e: Exception){
                     e.printStackTrace()
                     return@use
                 }

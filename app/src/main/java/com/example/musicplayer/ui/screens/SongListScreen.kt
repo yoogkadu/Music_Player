@@ -30,7 +30,8 @@ import com.example.musicplayer.data.Song
 @Composable
 fun SongListScreen(modifier: Modifier = Modifier,
                    songList: List<Song>,
-                   isLoading : Boolean) {
+                   isLoading : Boolean,
+                   onSongClick: (Song) -> Unit) {
     if(isLoading){
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -51,19 +52,19 @@ fun SongListScreen(modifier: Modifier = Modifier,
     else{
         LazyColumn(modifier = modifier.fillMaxSize()) {
             items(songList) {
-                SongCard(Modifier, it)
+                SongCard(Modifier, it,onSongClick=onSongClick)
             }
         }
     }
 }
 
 @Composable
-fun SongCard(modifier: Modifier = Modifier,song: Song) {
+fun SongCard(modifier: Modifier = Modifier,song: Song,onSongClick: (Song) -> Unit = {}) {
 
         ListItem(
             modifier=modifier.clickable(
                 onClick = {
-                    print(song.title)
+                    onSongClick(song)
                 }
             ),
             headlineContent = { Text(song.title) },
@@ -102,5 +103,7 @@ private fun SongListScreenPreview() {
         Song(id = "2", title = "Midnight City", artist = "M83",duration = 3000L, uri = null, albumArtUri = null, album = "", albumArtist = "Unknown"),
         Song(id = "3", title = "Starboy", artist = "The Weeknd",duration = 3000L, uri = null, albumArtUri = null, album = "", albumArtist = "Unknown")
     )
-    SongListScreen(Modifier,emptyList(),isLoading = false)
+    SongListScreen(Modifier,emptyList(),isLoading = false, onSongClick = {
+
+    })
 }

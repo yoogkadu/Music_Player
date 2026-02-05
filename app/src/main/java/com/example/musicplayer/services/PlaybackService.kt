@@ -1,5 +1,7 @@
 package com.example.musicplayer.services
 
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
 class PlaybackService : MediaSessionService() {
@@ -11,6 +13,7 @@ class PlaybackService : MediaSessionService() {
         val player = ExoPlayer.Builder(this).build()
         mediaSession = MediaSession.Builder(this, player).build()
     }
+
 
     // Android 14+ needs to know which session to associate with the notification
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -25,4 +28,6 @@ class PlaybackService : MediaSessionService() {
         }
         super.onDestroy()
     }
+
+
 }
