@@ -11,10 +11,16 @@ sealed class AppPermission(val isOptional : Boolean) {
 }
 
 interface PlatformPermissionMapper{
+    val allPermissions: List<AppPermission>
     fun map(permission: AppPermission): List<String>
     fun fromManifestString(manifestString: String) : AppPermission?
+
 }
 class AndroidPermissionMapper : PlatformPermissionMapper {
+    override val allPermissions: List<AppPermission> = listOf(
+        AppPermission.AudioLibrary,
+        AppPermission.Notification
+    )
 
     override fun map(permission: AppPermission): List<String> {
         return when (permission) {

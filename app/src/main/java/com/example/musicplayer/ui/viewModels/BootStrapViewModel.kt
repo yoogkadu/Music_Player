@@ -20,14 +20,14 @@ class BootStrapViewModel(
     private val _uiState = MutableStateFlow<BootStrapState>(BootStrapState.NeedsPermission)
     val uiState= _uiState.asStateFlow()
     val visiblePermissionDialogQueue= mutableStateListOf<AppPermission>()
-    fun dismissDialog(permission: AppPermission){
+
+
+    fun dismissDialog(){
         visiblePermissionDialogQueue.removeFirstOrNull()
-        if (permission.isOptional) {
-            checkIfReadyToProceed()
-        }
+        checkIfReadyToProceed()
     }
     fun getAllRequiredPermissions(): Array<String> {
-        return listOf(AppPermission.AudioLibrary, AppPermission.Notification)
+        return mapper.allPermissions
             .flatMap { mapper.map(it) }
             .toTypedArray()
     }
@@ -53,13 +53,16 @@ class BootStrapViewModel(
      fun checkIfReadyToProceed() {
         // 1. Get a list of all permissions that are REQUIRED (not optional)
         if (_uiState.value != BootStrapState.NeedsPermission) return
-        val crucialPermissions = listOf(AppPermission.AudioLibrary, AppPermission.Notification)
+        val crucialPermissions = mapper.allPermissions
             .filter { !it.isOptional }
 
         // 2. Check if the gateway says they are all granted
         val allCrucialGranted = crucialPermissions.all { permission ->
             hasPermission(permission)
         }
+         if (visiblePermissionDialogQueue.isNotEmpty()) {
+             return
+         }
 
         // 3. If everything crucial is good, move to Loading
         if (allCrucialGranted) {
