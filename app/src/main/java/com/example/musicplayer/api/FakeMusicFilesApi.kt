@@ -1,6 +1,7 @@
 package com.example.musicplayer.api
 
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toUri
 import com.example.musicplayer.data.Song
 import kotlinx.coroutines.delay
@@ -12,6 +13,7 @@ class FakeMusicFilesApi: MusicFilesApi {
     private val _songFlow = MutableStateFlow<List<Song>>(emptyList())
     override fun getSongs(): Flow<List<Song>> = _songFlow.asStateFlow()
     override suspend fun refreshSongs() {
+        Log.d("MusicDebug", "Starting refresh...")
         delay(500)
         val songList= listOf(
             Song(
@@ -34,7 +36,7 @@ class FakeMusicFilesApi: MusicFilesApi {
             )
         )
         _songFlow.value = songList
-
+        Log.d("MusicDebug", "Refresh complete! Songs sent: ${songList.size}")
     }
 
 }

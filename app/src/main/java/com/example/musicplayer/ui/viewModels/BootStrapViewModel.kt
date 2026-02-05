@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import com.example.musicplayer.data.BootStrapState
-import com.example.musicplayer.data.MusicRepository
 import com.example.musicplayer.permission.AppPermission
 import com.example.musicplayer.permission.PlatformPermissionMapper
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 
 
 class BootStrapViewModel(
-    val musicRepository: MusicRepository,
     val mapper: PlatformPermissionMapper,
     val application : Application
 
@@ -53,7 +51,7 @@ class BootStrapViewModel(
 
 
     }
-    private fun checkIfReadyToProceed() {
+     fun checkIfReadyToProceed() {
         // 1. Get a list of all permissions that are REQUIRED (not optional)
         if (_uiState.value != BootStrapState.NeedsPermission) return
         val crucialPermissions = listOf(AppPermission.AudioLibrary, AppPermission.Notification)

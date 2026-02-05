@@ -1,9 +1,9 @@
 package com.example.musicplayer.nav
 
-import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.example.musicplayer.AppViewModelProvider
+import com.example.musicplayer.data.BootStrapState
 import com.example.musicplayer.permission.AndroidPermissionMapper
 import com.example.musicplayer.ui.screens.PermissionScreen
 import com.example.musicplayer.ui.screens.SongListScreen
@@ -38,6 +39,17 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostCon
 
                 val bootStrapUiState by bootStrapViewModel.uiState.collectAsStateWithLifecycle()
                 val mapper = AndroidPermissionMapper()
+                bootStrapViewModel.checkIfReadyToProceed()
+                LaunchedEffect(bootStrapUiState) {
+
+                    // If state is Loading (meaning we just got permission), jump immediately!
+                    if (bootStrapUiState is BootStrapState.Loading) {
+                        navController.navigate(Routes.SongList) {
+                            // This clears the Permission screen from the "Back" history
+                            popUpTo<Routes.BootNavigationGraph> { inclusive = true }
+                        }
+                    }
+                }
 
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -48,24 +60,24 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostCon
 
                     }
                 )
-                PermissionScreen(
-                    modifier = modifier,
-                    dialogQueue = bootStrapViewModel.visiblePermissionDialogQueue,
-                    mapper = mapper,
-                    onOkClick = {
-                        permission->
-                        val stringsToRequest = mapper.map(permission).toTypedArray()
-                        permissionLauncher.launch(stringsToRequest)
-                    },
-                    onDismiss = {
-                        permission ->
-                        bootStrapViewModel.dismissDialog(permission)
-                    },
-                    onGrantClick = {
-                        val permission = bootStrapViewModel.getAllRequiredPermissions()
-                        permissionLauncher.launch(permission)
-                    },
-                )
+                if (bootStrapUiState is BootStrapState.NeedsPermission) {
+                    PermissionScreen(
+                        modifier = modifier,
+                        dialogQueue = bootStrapViewModel.visiblePermissionDialogQueue,
+                        mapper = mapper,
+                        onOkClick = { permission ->
+                            val stringsToRequest = mapper.map(permission).toTypedArray()
+                            permissionLauncher.launch(stringsToRequest)
+                        },
+                        onDismiss = { permission ->
+                            bootStrapViewModel.dismissDialog(permission)
+                        },
+                        onGrantClick = {
+                            val permission = bootStrapViewModel.getAllRequiredPermissions()
+                            permissionLauncher.launch(permission)
+                        },
+                    )
+                }
             }
             composable<Routes.LoadingScreen>{
 
@@ -74,10 +86,11 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostCon
         composable< Routes.SongList> {
             val musicViewModel : MusicViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val musicUiState = musicViewModel.songs.collectAsStateWithLifecycle()
+            val musicLoadingState= musicViewModel.isLoading.collectAsStateWithLifecycle()
             SongListScreen(
                 modifier = modifier,
                 songList = musicUiState.value,
-                isLoading = false
+                isLoading = musicLoadingState.value
             )
         }
 
