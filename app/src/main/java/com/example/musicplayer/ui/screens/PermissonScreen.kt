@@ -27,7 +27,7 @@ import com.example.musicplayer.permission.PlatformPermissionMapper
 fun PermissionScreen(modifier: Modifier=Modifier,
                      dialogQueue: List<AppPermission> = emptyList(),
                      mapper: PlatformPermissionMapper,
-                     onDismiss: (AppPermission) -> Unit,
+                     onDismiss: () -> Unit,
                      onOkClick: (AppPermission) -> Unit,
                      onGrantClick: () ->Unit,
 ){
@@ -67,14 +67,14 @@ fun PermissionScreen(modifier: Modifier=Modifier,
             }
          } ?: false,
          onDismiss = {
-             onDismiss(permission)
+             onDismiss()
                      },
          onOkClick = {
              onOkClick(permission)
          },
          onGoToAppSettingsClick = {
              activity?.openAppSettings()
-             onDismiss(permission)
+             onDismiss()
                                   },
 
      )

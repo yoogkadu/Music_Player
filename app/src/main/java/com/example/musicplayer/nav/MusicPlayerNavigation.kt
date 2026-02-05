@@ -69,8 +69,8 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostCon
                             val stringsToRequest = mapper.map(permission).toTypedArray()
                             permissionLauncher.launch(stringsToRequest)
                         },
-                        onDismiss = { permission ->
-                            bootStrapViewModel.dismissDialog(permission)
+                        onDismiss = {
+                            bootStrapViewModel.dismissDialog()
                         },
                         onGrantClick = {
                             val permission = bootStrapViewModel.getAllRequiredPermissions()
