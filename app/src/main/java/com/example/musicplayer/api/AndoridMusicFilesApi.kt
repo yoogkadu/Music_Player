@@ -28,11 +28,13 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                 MediaStore.Audio.Media.ALBUM,
                 MediaStore.Audio.Media.ALBUM_ARTIST,
             )
-            val selection = "${MediaStore.Audio.Media.DURATION} >= 10000"
+            val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
             val sortOrder = "${MediaStore.Audio.Media.DATE_ADDED} DESC"
 
+            val uri= MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+
             val query = context.contentResolver.query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                uri,
                 projection,
                 selection,
                 null,
@@ -40,7 +42,6 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
             )
             query?.use {
                 try {
-                    Log.d("MusicDebug","Try started")
                     val idColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
                     val titleColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
                     val durationColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
@@ -48,7 +49,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                     val albumArtColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
                     val albumColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                     val albumArtistColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ARTIST)
-                    Log.d("MusicDebug",it.moveToNext().toString())
+
                     while(it.moveToNext()){
                         Log.d("MusicDebug","While started ${it.position}")
                         val id = it.getLong(idColumn)
@@ -57,7 +58,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                         val artist = it.getString(artistColumn) ?: "Unknown Artist"
                         val album = it.getString(albumColumn) ?: "Unknown Album"
                         val albumId = it.getLong(albumArtColumn)
-                        val albumArtist = it.getString(albumArtistColumn)
+                        val albumArtist = it.getString(albumArtistColumn) ?: "Unknown Album Artist"
 
                         val contentUri = ContentUris.withAppendedId(
                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -67,6 +68,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                             "content://media/external/audio/albumart".toUri(),
                              albumId
                         )
+
                         songList.add(
                             Song(
                                 id = id.toString(),
@@ -79,7 +81,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                                 albumArtist = albumArtist
                             )
                         )
-                        Log.e("MusicDebug","Song added: $title")
+
                     }
 
 
