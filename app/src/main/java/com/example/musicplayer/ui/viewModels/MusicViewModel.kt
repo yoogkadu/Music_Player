@@ -30,6 +30,8 @@ class MusicViewModel(
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
+    val isPlaying: StateFlow<Boolean> = musicController.isPlaying
+
 
     private fun loading(){
         viewModelScope.launch {

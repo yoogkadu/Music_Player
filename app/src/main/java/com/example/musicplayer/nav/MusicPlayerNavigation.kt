@@ -2,8 +2,11 @@ package com.example.musicplayer.nav
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -20,6 +23,7 @@ import androidx.navigation.navigation
 import com.example.musicplayer.AppViewModelProvider
 import com.example.musicplayer.data.BootStrapState
 import com.example.musicplayer.permission.AndroidPermissionMapper
+import com.example.musicplayer.ui.bottomNavigation.BottomMiniMusicPlayer
 import com.example.musicplayer.ui.screens.PermissionScreen
 import com.example.musicplayer.ui.screens.SongListScreen
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
@@ -27,7 +31,10 @@ import com.example.musicplayer.ui.viewModels.MusicViewModel
 
 
 @Composable
-fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostController =rememberNavController()) {
+fun MusicPlayerNavigation(modifier: Modifier= Modifier,
+                          navController: NavHostController =rememberNavController()
+) {
+
     NavHost(navController = navController, startDestination = Routes.BootNavigationGraph) {
         navigation<Routes.BootNavigationGraph>(startDestination = Routes.PermissionScreen){
             composable<Routes.PermissionScreen> {
@@ -79,22 +86,36 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,navController: NavHostCon
                     )
                 }
             }
-            composable<Routes.LoadingScreen>{
-
-            }
         }
         composable< Routes.SongList> {
             val musicViewModel : MusicViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val musicUiState = musicViewModel.songs.collectAsStateWithLifecycle()
             val musicLoadingState= musicViewModel.isLoading.collectAsStateWithLifecycle()
-            SongListScreen(
-                modifier = modifier,
-                songList = musicUiState.value,
-                isLoading = musicLoadingState.value,
-                onSongClick = {
-                    song -> musicViewModel.playSong(song)
+
+            Scaffold (
+                bottomBar={
+                    BottomMiniMusicPlayer(
+                        Modifier,
+                        song = musicViewModel.currentSong.collectAsState().value,
+                        onTogglePlay = {
+                            musicViewModel.togglePlayPause()
+                        },
+                        onClick = {
+                        }
+                        , isPlaying = musicViewModel.isPlaying.collectAsState().value
+                    )
                 }
-            )
+            ){
+                paddingValues ->
+                SongListScreen(
+                    modifier = modifier.padding(paddingValues),
+                    songList = musicUiState.value,
+                    isLoading = musicLoadingState.value,
+                    onSongClick = { song ->
+                        musicViewModel.playSong(song)
+                    }
+                )
+            }
         }
 
     }

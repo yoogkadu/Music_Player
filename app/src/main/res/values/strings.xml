@@ -11,5 +11,10 @@
 
     <string name="ok">OK</string>
     <string name="settings">Settings</string>
-    <string name="no_songs_found">No Song found on this devicee</string>
+    <string name="no_songs_found">No Song found on this device</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_title"> Unknown Title</string>
+    <string name="unknown_album_artist">Unknown Album Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+    <string name="unknown_duration">Unknown Duration"</string>
 </resources>

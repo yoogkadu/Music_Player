@@ -17,6 +17,8 @@ class MusicController(context : Context) {
 
     private val _player = MutableStateFlow<Player?>(null)
     val player = _player.asStateFlow()
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying = _isPlaying.asStateFlow()
 
     init {
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -26,6 +28,16 @@ class MusicController(context : Context) {
             {
                 browser = controllerFuture.get()
                 _player.value=browser
+                browser?.addListener(object : Player.Listener{
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        super.onIsPlayingChanged(isPlaying)
+                        _isPlaying.value=isPlaying
+                    }
+
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                        super.onMediaItemTransition(mediaItem, reason)
+                    }
+                })
             },
             MoreExecutors.directExecutor()
         )
