@@ -16,8 +16,10 @@ composeBom = "2026.01.01"
 media3Exoplayer = "1.9.1"
 navigationComposeVersion = "2.8.5"
 media3Session = "1.9.1"
+uiTextGoogleFonts = "1.10.2"
 
 [libraries]
+androidx-compose-ui-text-google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts", version.ref = "uiTextGoogleFonts" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }

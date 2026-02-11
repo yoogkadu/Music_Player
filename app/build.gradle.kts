@@ -86,5 +86,8 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.ui.compose)
 
+    implementation(libs.androidx.compose.ui.text.google.fonts) // Check Maven for the latest version
+
+
 
 }
