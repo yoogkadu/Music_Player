@@ -1,5 +1,6 @@
 package com.example.musicplayer.ui.bottomNavigation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,26 +29,33 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.musicplayer.R
 import com.example.musicplayer.data.Song
+import com.example.musicplayer.ui.theme.MusicPlayerTheme
 
 @Composable
 fun BottomMiniMusicPlayer(modifier: Modifier = Modifier,
                           song: Song?,
                           onClick: () -> Unit,
                           onTogglePlay : () -> Unit,
-                          isPlaying: Boolean = false
+                          isPlaying: Boolean = false,
+                          onSkipNext: ()->Unit,
+                          onSkipPrevious: ()->Unit,
                           ) {
     val context = LocalContext.current
-    Surface (modifier = modifier.fillMaxWidth()
+    Surface (modifier = modifier
+        .clip(shape = RoundedCornerShape(9.dp))
+        .fillMaxWidth()
         .height(68.dp)
         .clickable(
             onClick = onClick
         ),
         tonalElevation = 8.dp,
-        shadowElevation = 10.dp
+        shadowElevation = 10.dp,
+
     ){
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+
         ) {
             AsyncImage(
                 model= ImageRequest.Builder(context)
@@ -80,9 +88,19 @@ fun BottomMiniMusicPlayer(modifier: Modifier = Modifier,
                 )
             }
             IconButton(
-                onClick = {
-                    onTogglePlay()
-                          },
+                onClick = onSkipPrevious,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    painterResource(
+                        R.drawable.round_skip_previous_24
+                    ),
+                    contentDescription = stringResource(R.string.next)
+                )
+
+            }
+            IconButton(
+                onClick = onTogglePlay,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
@@ -90,17 +108,37 @@ fun BottomMiniMusicPlayer(modifier: Modifier = Modifier,
                         if (isPlaying) R.drawable.rounded_pause_24
                         else R.drawable.rounded_play_arrow_24
                     ),
+                    contentDescription = stringResource(R.string.pause_play)
+                )
+
+            }
+            IconButton(
+                onClick = onSkipNext,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    painterResource(
+                        R.drawable.round_skip_next_24
+                    ),
                     contentDescription = null
                 )
+
             }
 
         }
     }
 }
 
-@Preview
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name="Darkmode",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun BottomMiniPlayerPreview() {
-    BottomMiniMusicPlayer(song = null, onClick = {}, onTogglePlay = {})
+    MusicPlayerTheme() {
+        BottomMiniMusicPlayer(song = null, onClick = {}, onTogglePlay = {}, onSkipNext = {}, onSkipPrevious = {})
+    }
 
 }

@@ -70,7 +70,6 @@ class MusicViewModel(
     }
 
     fun skipToNext() {
-        // Logic to find the next song in the list
         val currentList = songs.value
         val currentIndex = currentList.indexOf(_currentSong.value)
         if (currentIndex != -1 && currentIndex < currentList.size - 1) {

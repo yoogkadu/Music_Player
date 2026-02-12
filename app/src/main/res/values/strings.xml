@@ -17,4 +17,11 @@
     <string name="unknown_album_artist">Unknown Album Artist</string>
     <string name="unknown_album">Unknown Album</string>
     <string name="unknown_duration">Unknown Duration"</string>
+    <string name="pause_play">Pause or play</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="home">Home</string>
+    <string name="search">Search</string>
+    <string name="playlist">Playlist</string>
+    <string name="list">List</string>
 </resources>

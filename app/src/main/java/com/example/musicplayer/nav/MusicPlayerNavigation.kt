@@ -2,6 +2,8 @@ package com.example.musicplayer.nav
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -24,6 +26,7 @@ import com.example.musicplayer.AppViewModelProvider
 import com.example.musicplayer.data.BootStrapState
 import com.example.musicplayer.permission.AndroidPermissionMapper
 import com.example.musicplayer.ui.bottomNavigation.BottomMiniMusicPlayer
+import com.example.musicplayer.ui.bottomNavigation.BottomNavBar
 import com.example.musicplayer.ui.screens.PermissionScreen
 import com.example.musicplayer.ui.screens.SongListScreen
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
@@ -51,7 +54,7 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
 
                     // If state is Loading (meaning we just got permission), jump immediately!
                     if (bootStrapUiState is BootStrapState.Loading) {
-                        navController.navigate(Routes.SongList) {
+                        navController.navigate(Routes.HomeScreen) {
                             // This clears the Permission screen from the "Back" history
                             popUpTo<Routes.BootNavigationGraph> { inclusive = true }
                         }
@@ -87,34 +90,46 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                 }
             }
         }
-        composable< Routes.SongList> {
+        composable< Routes.HomeScreen> {
             val musicViewModel : MusicViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val musicUiState = musicViewModel.songs.collectAsStateWithLifecycle()
             val musicLoadingState= musicViewModel.isLoading.collectAsStateWithLifecycle()
 
             Scaffold (
                 bottomBar={
-                    BottomMiniMusicPlayer(
-                        Modifier,
-                        song = musicViewModel.currentSong.collectAsState().value,
-                        onTogglePlay = {
-                            musicViewModel.togglePlayPause()
-                        },
-                        onClick = {
-                        }
-                        , isPlaying = musicViewModel.isPlaying.collectAsState().value
-                    )
+                    Column {
+                        BottomMiniMusicPlayer(
+                            Modifier,
+                            song = musicViewModel.currentSong.collectAsState().value,
+                            onTogglePlay = {
+                                musicViewModel.togglePlayPause()
+                            },
+                            onClick = {
+                            }, isPlaying = musicViewModel.isPlaying.collectAsState().value,
+                            onSkipNext = { musicViewModel.skipToNext() },
+                            onSkipPrevious = { musicViewModel.skipToPrevious() }
+                        )
+                        BottomNavBar(navigationList = getAllHomeScreenRoutes())
+                    }
                 }
             ){
                 paddingValues ->
-                SongListScreen(
-                    modifier = modifier.padding(paddingValues),
-                    songList = musicUiState.value,
-                    isLoading = musicLoadingState.value,
-                    onSongClick = { song ->
-                        musicViewModel.playSong(song)
-                    }
-                )
+                Box(
+                    modifier = modifier.padding(paddingValues)
+                ) {
+                    SongListScreen(
+                        songList = musicUiState.value,
+                        isLoading = musicLoadingState.value,
+                        onSongClick = { song ->
+                            musicViewModel.playSong(song)
+                        }
+                    )
+
+
+
+
+                }
+
             }
         }
 

@@ -36,7 +36,14 @@ class MusicController(context : Context) {
 
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         super.onMediaItemTransition(mediaItem, reason)
+
                     }
+
+                    override fun onDeviceVolumeChanged(volume: Int, muted: Boolean) {
+                        super.onDeviceVolumeChanged(volume, muted)
+
+                    }
+
                 })
             },
             MoreExecutors.directExecutor()
