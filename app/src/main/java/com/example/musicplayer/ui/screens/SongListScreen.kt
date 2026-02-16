@@ -48,7 +48,8 @@ fun SongListScreen(modifier: Modifier = Modifier,
         ) {
             CircularProgressIndicator(
                 color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3.dp
+                strokeWidth = 3.dp,
+
             )
         }
     }

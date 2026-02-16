@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.musicplayer.data.MusicController
 import com.example.musicplayer.data.MusicRepository
 import com.example.musicplayer.data.Song
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -18,19 +20,34 @@ class MusicViewModel(
     val musicController: MusicController
 ): ViewModel(){
 
-    val songs: StateFlow<List<Song>> = musicRepository.observeSongs().stateIn(
+    val songs: StateFlow<List<Song>> = musicRepository
+        .observeSongs()
+        .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList()
     )
+
     val player = musicController.player
 
-    private val _currentSong = MutableStateFlow<Song?>(null)
-    val currentSong = _currentSong.asStateFlow()
-
+    val currentSong: StateFlow<Song?> = musicController.currentMediaId
+        .combine(songs) { id, songList ->
+            if (id != null && id.isNotEmpty()) {
+                songList.find { it.id == id }
+            } else {
+                null
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null
+        )
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
     val isPlaying: StateFlow<Boolean> = musicController.isPlaying
+
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition = _currentPosition.asStateFlow()
 
 
     private fun loading(){
@@ -50,14 +67,13 @@ class MusicViewModel(
         }
     }
     fun playSong(song: Song) {
-        musicController.play(song)
-        _currentSong.value = song
+        val currentList = songs.value
+        val index = currentList.indexOf(song)
+        if (index != -1) {
+            musicController.play(currentList, index)
+        }
     }
 
-    fun stopSong() {
-        musicController.release()
-        _currentSong.value = null
-    }
 
     fun togglePlayPause(){
         val p = player.value ?: return
@@ -69,25 +85,30 @@ class MusicViewModel(
         }
     }
 
+    fun stopSong(){
+        player.value?.stop()
+    }
     fun skipToNext() {
-        val currentList = songs.value
-        val currentIndex = currentList.indexOf(_currentSong.value)
-        if (currentIndex != -1 && currentIndex < currentList.size - 1) {
-            playSong(currentList[currentIndex + 1])
-        }
+        _currentPosition.value=0
+       player.value?.seekToNext()
     }
 
     fun skipToPrevious() {
-        val currentList = songs.value
-        val currentIndex = currentList.indexOf(_currentSong.value)
-        if (currentIndex > 0) {
-            playSong(currentList[currentIndex - 1])
-        }
+        _currentPosition.value=0
+        player.value?.seekToPrevious()
     }
     init {
-
         loading()
+        viewModelScope.launch {
+            while (true) {
+                // Check if the player is ready and currently playing
+                val p = musicController.player.value
+                if (p != null && p.isPlaying) {
+                    _currentPosition.value = p.currentPosition
+                }
+                // 500ms is a good balance for M14 performance vs smoothness
+                delay(500L)
+            }
+        }
     }
-
-
 }

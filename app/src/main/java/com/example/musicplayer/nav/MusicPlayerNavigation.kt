@@ -1,17 +1,35 @@
 package com.example.musicplayer.nav
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,12 +41,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.example.musicplayer.AppViewModelProvider
+import com.example.musicplayer.R
 import com.example.musicplayer.data.BootStrapState
 import com.example.musicplayer.permission.AndroidPermissionMapper
 import com.example.musicplayer.ui.bottomNavigation.BottomMiniMusicPlayer
 import com.example.musicplayer.ui.bottomNavigation.BottomNavBar
+import com.example.musicplayer.ui.screens.MainPlayer
 import com.example.musicplayer.ui.screens.PermissionScreen
 import com.example.musicplayer.ui.screens.SongListScreen
+import com.example.musicplayer.ui.theme.MusicPlayerTheme
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
 import com.example.musicplayer.ui.viewModels.MusicViewModel
 
@@ -90,26 +111,43 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                 }
             }
         }
-        composable< Routes.HomeScreen> {
+        composable< Routes.HomeScreen> { _ ->
             val musicViewModel : MusicViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val musicUiState = musicViewModel.songs.collectAsStateWithLifecycle()
             val musicLoadingState= musicViewModel.isLoading.collectAsStateWithLifecycle()
 
+            var isMainMusicPLayerVisible by rememberSaveable() { mutableStateOf(false) }
+
             Scaffold (
                 bottomBar={
-                    Column {
-                        BottomMiniMusicPlayer(
-                            Modifier,
-                            song = musicViewModel.currentSong.collectAsState().value,
-                            onTogglePlay = {
-                                musicViewModel.togglePlayPause()
-                            },
-                            onClick = {
-                            }, isPlaying = musicViewModel.isPlaying.collectAsState().value,
-                            onSkipNext = { musicViewModel.skipToNext() },
-                            onSkipPrevious = { musicViewModel.skipToPrevious() }
-                        )
-                        BottomNavBar(navigationList = getAllHomeScreenRoutes())
+                    if(!isMainMusicPLayerVisible){
+                        Column {
+                            BottomMiniMusicPlayer(
+                                Modifier,
+                                song = musicViewModel.currentSong.collectAsState().value,
+                                onTogglePlay = {
+                                    musicViewModel.togglePlayPause()
+                                },
+                                onClick = {
+                                    isMainMusicPLayerVisible=true
+                                },
+                                isPlaying = musicViewModel.isPlaying.collectAsState().value,
+                                onSkipNext = { musicViewModel.skipToNext() },
+                                onSkipPrevious = { musicViewModel.skipToPrevious() }
+                            )
+                            BottomNavBar(navigationList = getAllHomeScreenRoutes())
+                        }
+                    }
+
+                },
+                topBar = {
+
+                    if(isMainMusicPLayerVisible){
+                        TopAppBar(modifier = Modifier
+                            .statusBarsPadding(), onClick = { isMainMusicPLayerVisible = false })
+                        BackHandler(enabled = true) {
+                            isMainMusicPLayerVisible=false // Close the player instead of the app
+                        }
                     }
                 }
             ){
@@ -124,7 +162,27 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                             musicViewModel.playSong(song)
                         }
                     )
-
+                    AnimatedVisibility(
+                        visible = isMainMusicPLayerVisible,
+                        enter = slideInVertically(initialOffsetY = { it }),
+                        exit = slideOutVertically(targetOffsetY = { it })
+                    ) {
+                        val totalDuration = musicViewModel.player.value?.duration ?: 1L
+                        MainPlayer(
+                            song = musicViewModel.currentSong.collectAsState().value,
+                            currentPosition = musicViewModel.currentPosition.collectAsState().value,
+                            onSeek = { musicViewModel.player.value?.seekTo(it) },
+                            totalDuration = totalDuration,
+                            onTogglePlay = { musicViewModel.togglePlayPause() },
+                            onSkipNext = {
+                                musicViewModel.skipToNext()
+                            },
+                            isPlaying = musicViewModel.isPlaying.collectAsState().value,
+                            onSkipPrevious = {
+                                musicViewModel.skipToPrevious()
+                            }
+                        )
+                    }
 
 
 
@@ -149,4 +207,26 @@ inline fun <reified T : ViewModel, reified R : Any>
 }
 
 
+@Composable
+fun TopAppBar(modifier: Modifier = Modifier,onClick : () -> Unit) {
+    Row(
+        modifier = modifier.fillMaxWidth().clip(shape = RoundedCornerShape(19.dp))
+    ) {
+        IconButton(onClick = onClick,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(painter = painterResource(R.drawable.rounded_arrow_back_24)
+                ,contentDescription = null)
+        }
+        Spacer(modifier = Modifier.weight(8f))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun TopAppBarDemo() {
+    MusicPlayerTheme() {
+        TopAppBar(modifier = Modifier, onClick = {})
+    }
+}
 

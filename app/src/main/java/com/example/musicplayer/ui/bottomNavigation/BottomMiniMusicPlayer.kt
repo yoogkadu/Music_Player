@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +43,8 @@ fun BottomMiniMusicPlayer(modifier: Modifier = Modifier,
                           ) {
     val context = LocalContext.current
     Surface (modifier = modifier
-        .clip(shape = RoundedCornerShape(9.dp))
+        .clip(shape = RoundedCornerShape(topStart = CornerSize(10.dp), topEnd = CornerSize(10.dp)
+        , bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp)))
         .fillMaxWidth()
         .height(68.dp)
         .clickable(

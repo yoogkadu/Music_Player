@@ -3,7 +3,6 @@ package com.example.musicplayer.api
 import android.content.ContentUris
 import android.content.Context
 import android.provider.MediaStore
-import android.util.Log
 import androidx.core.net.toUri
 import com.example.musicplayer.data.Song
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +50,6 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                     val albumArtistColumn = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ARTIST)
 
                     while(it.moveToNext()){
-                        Log.d("MusicDebug","While started ${it.position}")
                         val id = it.getLong(idColumn)
                         val title = it.getString(titleColumn) ?: "Unknown Title"
                         val duration = it.getLong(durationColumn)
@@ -92,7 +90,6 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                 }
             }
 
-            Log.d("MusicDebug", "Songs sent: ${songList.size}")
             _songFlow.value= songList
         }
 
