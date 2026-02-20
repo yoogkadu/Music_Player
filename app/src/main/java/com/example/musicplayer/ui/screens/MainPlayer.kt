@@ -1,5 +1,6 @@
 package com.example.musicplayer.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.musicplayer.R
 import com.example.musicplayer.data.Song
+import com.example.musicplayer.nav.TopAppBar
 import com.example.musicplayer.ui.theme.MusicPlayerTheme
 
 @Composable
@@ -52,6 +54,7 @@ fun MainPlayer(modifier: Modifier = Modifier,
                onTogglePlay : ()->Unit,
                onSkipNext : ()->Unit,
                onSkipPrevious : ()->Unit,
+               onBackAction: ()->Unit
 ) {
     val context= LocalContext.current
     val placeholder =painterResource(R.drawable.baseline_music_note_24)
@@ -68,10 +71,16 @@ fun MainPlayer(modifier: Modifier = Modifier,
     }
     Surface(modifier.fillMaxSize()) {
 
+
         Column(
             modifier = Modifier,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            TopAppBar(modifier = Modifier
+            , onClick = onBackAction)
+            BackHandler(enabled = true) {
+                onBackAction()
+            }
 
             AsyncImage(
                 model = ImageRequest.Builder(context)
@@ -90,7 +99,7 @@ fun MainPlayer(modifier: Modifier = Modifier,
             )
             Spacer(modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp))
+                .height(60.dp))
             Text(
                 song?.title ?: stringResource(R.string.unknown_title),
                 style = MaterialTheme.typography.headlineMedium,
@@ -177,7 +186,7 @@ fun MainPlayer(modifier: Modifier = Modifier,
 @Composable
 private fun MainPlayerPreview() {
     MusicPlayerTheme() {
-        MainPlayer(Modifier, song, 0, {}, 0, false, {}, {},{})
+        MainPlayer(Modifier, song, 0, {}, 0, false, {}, {},{},{})
     }
 }
 

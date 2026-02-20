@@ -10,7 +10,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,57 +18,45 @@ class MusicViewModel(
     private val musicRepository: MusicRepository,
     val musicController: MusicController
 ): ViewModel(){
-
-    val songs: StateFlow<List<Song>> = musicRepository
-        .observeSongs()
-        .stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = emptyList()
-    )
-
+    private val _songs = musicRepository.observeSongs()
     val player = musicController.player
 
-    val currentSong: StateFlow<Song?> = musicController.currentMediaId
-        .combine(songs) { id, songList ->
-            if (id != null && id.isNotEmpty()) {
-                songList.find { it.id == id }
-            } else {
-                null
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = null
-        )
     private val _isLoading = MutableStateFlow(true)
-    val isLoading = _isLoading.asStateFlow()
-    val isPlaying: StateFlow<Boolean> = musicController.isPlaying
 
     private val _currentPosition = MutableStateFlow(0L)
-    val currentPosition = _currentPosition.asStateFlow()
+
 
     private val _searchText = MutableStateFlow("")
-    val searchText = _searchText.asStateFlow()
 
-    private val _isSearching  = MutableStateFlow(false)
-    val isSearching = _isSearching.asStateFlow()
+    private val playerState = combine(
+        musicController.currentMediaId,
+        musicController.isPlaying,
+        _currentPosition
+    ) { id, playing, pos ->
+        Triple(id, playing, pos)
+    }
 
-    val songsSearched = searchText
-        .combine(songs){
-            text, songs -> if(text.isBlank()){
-                songs
-            }else{
-                songs.filter {
-                    it.matchSong(text)
-                }
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            songs.value
+    val uiState: StateFlow<MusicUiState> = combine(
+        _songs,
+        _searchText,
+        _isLoading,
+        playerState
+    ) { songs, text, loading, player ->
+        val (mediaId, isPlaying, position) = player
+
+        val current = if (!mediaId.isNullOrEmpty()) songs.find { it.id == mediaId } else null
+        val filtered = if (text.isBlank()) songs else songs.filter { it.matchSong(text) }
+
+        MusicUiState(
+            songs = songs,
+            searchedSongs = filtered,
+            currentSong = current,
+            isPlaying = isPlaying,
+            isLoading = loading,
+            searchText = text,
+            currentPosition = position
         )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MusicUiState())
 
     fun onSearchTextChange(text: String) {
         Log.d("MusicVM",text)
@@ -94,7 +81,7 @@ class MusicViewModel(
         }
     }
     fun playSong(song: Song) {
-        val currentList = songs.value
+        val currentList = uiState.value.songs
         val index = currentList.indexOf(song)
         if (index != -1) {
             musicController.play(currentList, index)
@@ -139,3 +126,13 @@ class MusicViewModel(
         }
     }
 }
+
+data class MusicUiState(
+    val songs: List<Song> = emptyList(),
+    val searchedSongs: List<Song> = emptyList(),
+    val currentSong: Song? = null,
+    val isPlaying: Boolean = false,
+    val isLoading: Boolean = true,
+    val searchText: String = "",
+    val currentPosition: Long = 0L
+)

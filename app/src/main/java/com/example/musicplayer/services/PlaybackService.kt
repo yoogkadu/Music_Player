@@ -12,17 +12,16 @@ import com.example.musicplayer.MainActivity
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
-    // This is where the engine lives
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(AudioAttributes.Builder()
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                 .setUsage(C.USAGE_MEDIA)
+
                 .build(), true)
             .setHandleAudioBecomingNoisy(true)
             .build()
-        mediaSession = MediaSession.Builder(this, player).build()
 
         val intent = Intent(
             this,
@@ -35,6 +34,7 @@ class PlaybackService : MediaSessionService() {
             this,0,intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        mediaSession = MediaSession.Builder(this, player).setSessionActivity(pendingIntent).build()
 
     }
 

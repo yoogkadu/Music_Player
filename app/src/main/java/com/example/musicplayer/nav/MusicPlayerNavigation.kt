@@ -1,6 +1,5 @@
 package com.example.musicplayer.nav
 
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +23,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -124,8 +121,7 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
         }
         composable< Routes.HomeScreen> {
             val musicViewModel : MusicViewModel = viewModel(factory = AppViewModelProvider.Factory)
-            val musicUiState = musicViewModel.songs.collectAsStateWithLifecycle()
-            val musicLoadingState= musicViewModel.isLoading.collectAsStateWithLifecycle()
+            val musicUiState = musicViewModel.uiState.collectAsStateWithLifecycle()
             var isMainMusicPLayerVisible by rememberSaveable() { mutableStateOf(false) }
             val focusManager = LocalFocusManager.current
             val pageState = rememberPagerState(0) { HomeScreenRoute.routes.size }
@@ -137,14 +133,14 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                         Column {
                             BottomMiniMusicPlayer(
                                 Modifier,
-                                song = musicViewModel.currentSong.collectAsState().value,
+                                song = musicUiState.value.currentSong,
                                 onTogglePlay = {
                                     musicViewModel.togglePlayPause()
                                 },
                                 onClick = {
                                     isMainMusicPLayerVisible=true
                                 },
-                                isPlaying = musicViewModel.isPlaying.collectAsState().value,
+                                isPlaying = musicUiState.value.isPlaying,
                                 onSkipNext = { musicViewModel.skipToNext() },
                                 onSkipPrevious = { musicViewModel.skipToPrevious() }
                             )
@@ -163,16 +159,7 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                     }
 
                 },
-                topBar = {
 
-                    if(isMainMusicPLayerVisible){
-                        TopAppBar(modifier = Modifier
-                            .statusBarsPadding(), onClick = { isMainMusicPLayerVisible = false })
-                        BackHandler(enabled = true) {
-                            isMainMusicPLayerVisible=false
-                        }
-                    }
-                }
             ){
                 paddingValues ->
                 Box(
@@ -183,17 +170,17 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                            val currentRoute = HomeScreenRoute.getByIndex(pageNo)
                        HomePagerContent(
                            currentRoute,
-                            musicUiState.value,
+                            musicUiState.value.songs,
 
-                           musicLoadingState.value,
+                           musicUiState.value.isLoading,
                            onSongClick = { song->
                                musicViewModel.playSong(song)
                            },
                            onChangeText = { text->
                                musicViewModel.onSearchTextChange(text)
                            },
-                           searchText = musicViewModel.searchText.collectAsState().value,
-                           searchSongList = musicViewModel.songsSearched.collectAsState().value
+                           searchText = musicUiState.value.searchText,
+                           searchSongList = musicUiState.value.searchedSongs
 
                        )
                    }
@@ -204,17 +191,20 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                     ) {
                         val totalDuration = musicViewModel.player.value?.duration ?: 1L
                         MainPlayer(
-                            song = musicViewModel.currentSong.collectAsState().value,
-                            currentPosition = musicViewModel.currentPosition.collectAsState().value,
+                            song = musicUiState.value.currentSong,
+                            currentPosition = musicUiState.value.currentPosition,
                             onSeek = { musicViewModel.player.value?.seekTo(it) },
                             totalDuration = totalDuration,
                             onTogglePlay = { musicViewModel.togglePlayPause() },
                             onSkipNext = {
                                 musicViewModel.skipToNext()
                             },
-                            isPlaying = musicViewModel.isPlaying.collectAsState().value,
+                            isPlaying = musicUiState.value.isPlaying,
                             onSkipPrevious = {
                                 musicViewModel.skipToPrevious()
+                            },
+                            onBackAction = {
+                                isMainMusicPLayerVisible=false
                             }
                         )
                     }
