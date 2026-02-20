@@ -24,4 +24,6 @@
     <string name="search">Search</string>
     <string name="playlist">Playlist</string>
     <string name="list">List</string>
+    <string name="search_placeholder">Enter Here</string>
+    <string name="back">Back</string>
 </resources>

@@ -49,6 +49,33 @@ class MusicViewModel(
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition = _currentPosition.asStateFlow()
 
+    private val _searchText = MutableStateFlow("")
+    val searchText = _searchText.asStateFlow()
+
+    private val _isSearching  = MutableStateFlow(false)
+    val isSearching = _isSearching.asStateFlow()
+
+    val songsSearched = searchText
+        .combine(songs){
+            text, songs -> if(text.isBlank()){
+                songs
+            }else{
+                songs.filter {
+                    it.matchSong(text)
+                }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            songs.value
+        )
+
+    fun onSearchTextChange(text: String) {
+        Log.d("MusicVM",text)
+        _searchText.value = text
+    }
+
 
     private fun loading(){
         viewModelScope.launch {

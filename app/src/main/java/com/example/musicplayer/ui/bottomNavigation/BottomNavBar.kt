@@ -10,19 +10,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.musicplayer.nav.HomeScreenRoute
-import com.example.musicplayer.nav.getAllHomeScreenRoutes
+
 
 @Composable
 fun BottomNavBar(modifier: Modifier = Modifier,
-                 navigationList: List<HomeScreenRoute>) {
+                 navigationList: List<HomeScreenRoute>,
+                 onClick : (HomeScreenRoute) -> Unit = {},
+                 currentItem: HomeScreenRoute = HomeScreenRoute.Search
+) {
    NavigationBar(
        modifier = modifier
    ) {
        navigationList.forEach {
            item->
            NavigationBarItem(
-               selected = item.isSelected,
-               onClick = {  },
+               selected = item == currentItem,
+               onClick = {
+                   onClick(item)
+               },
                icon = { Icon(painterResource(item.iconId),
                    contentDescription = stringResource(item.stringId))
                    },
@@ -40,5 +45,5 @@ fun BottomNavBar(modifier: Modifier = Modifier,
 @Preview
 @Composable
 private fun BottomNavBarPreview() {
-    BottomNavBar(navigationList = getAllHomeScreenRoutes())
+    BottomNavBar(navigationList = HomeScreenRoute.routes)
 }

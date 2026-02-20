@@ -12,3 +12,22 @@ data class Song(
     val album: String,
     val albumArtist: String
 )
+{
+    fun matchSong(query: String): Boolean {
+        val matchingCombination  = listOf(
+            "$artist $album",
+            "$title $artist",
+            "$title $album",
+            "$title $albumArtist",
+            "$artist $album",
+            artist,
+            title,
+            album,
+            albumArtist,
+        )
+        return matchingCombination.any {
+            it.contains(query, ignoreCase = true)
+        }
+
+    }
+}
