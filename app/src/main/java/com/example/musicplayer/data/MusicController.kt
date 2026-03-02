@@ -54,24 +54,27 @@ class MusicController(context : Context) {
     }
 
 
-        fun play(songs: List<Song>, startIndex: Int) {
-            val mediaItems = songs.map { song ->
-                MediaItem.Builder()
-                    .setMediaId(song.id)
-                    .setUri(song.uri)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(song.title)
-                            .setArtist(song.artist)
-                            .setArtworkUri(song.albumArtUri)
-                            .build()
-                    ).build()
-            }
-
-            browser?.setMediaItems(mediaItems, startIndex, 0L)
-            browser?.prepare()
+    fun play(songs: List<Song>, startIndex: Int) {
+            load(songs,startIndex)
             browser?.play()
         }
+    fun load(songs: List<Song>, startIndex: Int) {
+        val mediaItems = songs.map { song ->
+            MediaItem.Builder()
+                .setMediaId(song.id)
+                .setUri(song.uri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(song.title)
+                        .setArtist(song.artist)
+                        .setArtworkUri(song.albumArtUri)
+                        .build()
+                ).build()
+        }
+
+        browser?.setMediaItems(mediaItems, startIndex, 0L)
+        browser?.prepare()
+    }
 
 
     fun release(){

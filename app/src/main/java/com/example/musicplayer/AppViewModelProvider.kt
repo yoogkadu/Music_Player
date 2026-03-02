@@ -13,7 +13,8 @@ object AppViewModelProvider{
         initializer {
             val application = MusicApplication()
             MusicViewModel(application.container.musicRepository,
-                application.container.musicController
+                application.container.musicController,
+                application.container.dataStore
             )
         }
         initializer {
