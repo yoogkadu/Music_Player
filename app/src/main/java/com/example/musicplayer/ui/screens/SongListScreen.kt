@@ -1,6 +1,7 @@
 package com.example.musicplayer.ui.screens
 
 import android.content.Context
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -89,8 +90,8 @@ fun SongCard(modifier: Modifier = Modifier,
                     onSongClick(song)
                 }
             ),
-            headlineContent = { Text(song.title) },
-            supportingContent = { Text(song.artist) },
+            headlineContent = { Text(song.title,modifier=Modifier.basicMarquee()) },
+            supportingContent = { Text(song.artist,modifier=Modifier.basicMarquee()) },
             leadingContent = {
                 AsyncImage(
                     model= remember(song.albumArtUri) {

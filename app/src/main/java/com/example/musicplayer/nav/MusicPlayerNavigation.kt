@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -44,7 +45,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navigation
 import com.example.musicplayer.AppViewModelProvider
 import com.example.musicplayer.R
 import com.example.musicplayer.data.BootStrapState
@@ -54,10 +54,12 @@ import com.example.musicplayer.ui.bottomNavigation.BottomMiniMusicPlayer
 import com.example.musicplayer.ui.bottomNavigation.BottomNavBar
 import com.example.musicplayer.ui.screens.MainPlayer
 import com.example.musicplayer.ui.screens.PermissionScreen
+import com.example.musicplayer.ui.screens.AlbumScreen
 import com.example.musicplayer.ui.screens.SearchScreen
 import com.example.musicplayer.ui.screens.SongListScreen
 import com.example.musicplayer.ui.theme.MusicPlayerTheme
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
+import com.example.musicplayer.ui.viewModels.MusicCurrentQueueSelection
 import com.example.musicplayer.ui.viewModels.MusicViewModel
 import kotlinx.coroutines.launch
 
@@ -67,15 +69,9 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                           navController: NavHostController =rememberNavController()
 ) {
 
-    NavHost(navController = navController, startDestination = Routes.BootNavigationGraph) {
-        navigation<Routes.BootNavigationGraph>(startDestination = Routes.PermissionScreen){
+    NavHost(navController = navController, startDestination = Routes.PermissionScreen) {
             composable<Routes.PermissionScreen> {
-                backstackEntry ->
-                val bootStrapViewModel = backstackEntry.
-                sharedViewModel<BootStrapViewModel, Routes.BootNavigationGraph>(
-                    navController,
-                    factory = AppViewModelProvider.Factory)
-
+                val bootStrapViewModel : BootStrapViewModel= viewModel(factory = AppViewModelProvider.Factory)
                 val bootStrapUiState by bootStrapViewModel.uiState.collectAsStateWithLifecycle()
                 val mapper = AndroidPermissionMapper()
                 bootStrapViewModel.checkIfReadyToProceed()
@@ -84,8 +80,7 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                     // If state is Loading (meaning we just got permission), jump immediately!
                     if (bootStrapUiState is BootStrapState.Loading) {
                         navController.navigate(Routes.HomeScreen) {
-                            // This clears the Permission screen from the "Back" history
-                            popUpTo<Routes.BootNavigationGraph> { inclusive = true }
+                            popUpTo<Routes.PermissionScreen> { inclusive = true }
                         }
                     }
                 }
@@ -118,8 +113,7 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                     )
                 }
             }
-        }
-        composable< Routes.HomeScreen> {
+        composable<Routes.HomeScreen> {
             val musicViewModel : MusicViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val musicUiState = musicViewModel.uiState.collectAsStateWithLifecycle()
             var isMainMusicPLayerVisible by rememberSaveable() { mutableStateOf(false) }
@@ -169,18 +163,23 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                        pageNo->
                            val currentRoute = HomeScreenRoute.getByIndex(pageNo)
                        HomePagerContent(
-                           currentRoute,
-                            musicUiState.value.songs,
-
-                           musicUiState.value.isLoading,
-                           onSongClick = { song->
-                               musicViewModel.playSong(song)
+                           route=currentRoute,
+                            songList=musicUiState.value.songs,
+                           isLoading = musicUiState.value.isLoading,
+                           onSongClick = { song,currentQueueSelection ->
+                               musicViewModel.playSong(song,currentQueueSelection)
                            },
                            onChangeText = { text->
                                musicViewModel.onSearchTextChange(text)
                            },
                            searchText = musicUiState.value.searchText,
-                           searchSongList = musicUiState.value.searchedSongs
+                           searchSongList = musicUiState.value.searchedSongs,
+                           albums = musicUiState.value.albums,
+                           onAlbumClick = {
+                               albumTitle->
+                               musicViewModel.changeAlbum(albumTitle)
+                           },
+                           selectedAlbum = musicUiState.value.selectedAlbum
 
                        )
                    }
@@ -260,27 +259,48 @@ fun HomePagerContent(
     route: HomeScreenRoute,
     songList: List<Song>,
     isLoading: Boolean,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, MusicCurrentQueueSelection) -> Unit,
     onChangeText: (String) -> Unit,
     searchText: String,
-    searchSongList: List<Song>
+    searchSongList: List<Song>,
+    albums: Map<String,List<Song>> = emptyMap(),
+    onAlbumClick: (String) -> Unit,
+    selectedAlbum: String
     ) {
+    var isAlbumSelected by retain { mutableStateOf(false) }
     when (route) {
         is HomeScreenRoute.Home -> Surface(modifier = Modifier.fillMaxSize()){ Text("Hello") }
         is HomeScreenRoute.Search -> SearchScreen(
             songList = searchSongList,
             modifier = Modifier,
-            onSongClick = onSongClick,
+            onSongClick = {
+                song->
+                onSongClick(song,MusicCurrentQueueSelection.SearchedSongQueue(searchText))
+            },
             onChangeText = onChangeText,
             searchText =searchText,
         )
-        is HomeScreenRoute.List -> {
+
+        is HomeScreenRoute.List -> {0
             SongListScreen(
                 songList =songList,
                 isLoading = isLoading,
-                onSongClick = onSongClick
+                onSongClick = {
+                    song->
+                    onSongClick(song,MusicCurrentQueueSelection.SongListSongQueue)
+                }
             )
         }
-        is HomeScreenRoute.Playlist -> Surface(modifier = Modifier.fillMaxSize()){ Text("Hello") }
+        is HomeScreenRoute.Playlist -> AlbumScreen(albumList = albums,
+            onAlbumClick = onAlbumClick
+            , isAlbumSelected = isAlbumSelected,
+            toggleAlbumSelected = {
+                isAlbumSelected= !isAlbumSelected
+            },
+            selectedAlbum = selectedAlbum,
+            onSongClick = {
+                song->
+                onSongClick(song,MusicCurrentQueueSelection.PlayListSongQueue(selectedAlbum))
+            })
     }
 }

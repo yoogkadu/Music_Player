@@ -1,6 +1,7 @@
 package com.example.musicplayer.ui.bottomNavigation
 
 import android.content.res.Configuration
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,13 +81,15 @@ fun BottomMiniMusicPlayer(modifier: Modifier = Modifier,
                     text = song?.title ?: stringResource(R.string.unknown_title),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee()
                 )
                 Text(
                     text = song?.artist ?: stringResource(R.string.unknown_artist),
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee()
                 )
             }
             IconButton(

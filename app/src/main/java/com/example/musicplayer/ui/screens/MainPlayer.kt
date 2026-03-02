@@ -1,6 +1,7 @@
 package com.example.musicplayer.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -103,12 +104,14 @@ fun MainPlayer(modifier: Modifier = Modifier,
             Text(
                 song?.title ?: stringResource(R.string.unknown_title),
                 style = MaterialTheme.typography.headlineMedium,
-                maxLines = 1
+                maxLines = 1,
+                modifier=Modifier.basicMarquee()
             )
             Text(
                 song?.artist ?: stringResource(R.string.unknown_artist),
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray
+                color = Color.Gray,
+                modifier=Modifier.basicMarquee()
             )
 
             Slider(
@@ -208,7 +211,7 @@ fun formatTime(ms: Long): String {
 }
 
 //@Composable
-//fun UsuableSlider(modifier: Modifier = Modifier,
+//fun UsableSlider(modifier: Modifier = Modifier,
 //                  currentPosition: Float,
 //                  onSeek : (Float)->Unit,
 //                  totalDuration : Float,

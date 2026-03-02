@@ -18,76 +18,102 @@ class MusicViewModel(
     private val musicRepository: MusicRepository,
     val musicController: MusicController
 ): ViewModel(){
-    private val _songs = musicRepository.observeSongs()
     val player = musicController.player
-
-    private val _isLoading = MutableStateFlow(true)
-
+    private data class LocalMusicState(
+        val isLoading: Boolean = false,
+        val searchText: String = "",
+        val selectedAlbum: String? = null,
+        val songs: List<Song> = emptyList(),
+        val currentQueue: List<Song> = emptyList(),
+        val currentQueueSelection: MusicCurrentQueueSelection = MusicCurrentQueueSelection.SongListSongQueue,
+        val albums : Map<String,List<Song>> = emptyMap()
+    )
+    private val _localState = MutableStateFlow(LocalMusicState())
     private val _currentPosition = MutableStateFlow(0L)
 
-
-    private val _searchText = MutableStateFlow("")
-
-    private val playerState = combine(
+    val uiState: StateFlow<MusicUiState> = combine(
+        _localState,
         musicController.currentMediaId,
         musicController.isPlaying,
         _currentPosition
-    ) { id, playing, pos ->
-        Triple(id, playing, pos)
-    }
-
-    val uiState: StateFlow<MusicUiState> = combine(
-        _songs,
-        _searchText,
-        _isLoading,
-        playerState
-    ) { songs, text, loading, player ->
-        val (mediaId, isPlaying, position) = player
-
-        val current = if (!mediaId.isNullOrEmpty()) songs.find { it.id == mediaId } else null
-        val filtered = if (text.isBlank()) songs else songs.filter { it.matchSong(text) }
-
+    ) { local, mediaId, isPlaying, position ->
+        val filteredSongs = if (local.searchText.isBlank()) {
+            local.songs
+        } else {
+            local.songs.filter { it.matchSong(local.searchText) }
+        }
+        val currentSong = if (!mediaId.isNullOrEmpty()) {
+            local.songs.find { it.id == mediaId }
+        } else null
         MusicUiState(
-            songs = songs,
-            searchedSongs = filtered,
-            currentSong = current,
+            songs = local.songs,
+            searchedSongs = filteredSongs,
+            currentSong = currentSong,
             isPlaying = isPlaying,
-            isLoading = loading,
-            searchText = text,
-            currentPosition = position
+            isLoading = local.isLoading,
+            searchText = local.searchText,
+            currentPosition = position,
+            currentQueue = local.currentQueue,
+            albums = local.albums,
+            selectedAlbum = local.selectedAlbum ?: ""
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MusicUiState())
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = MusicUiState()
+    )
 
     fun onSearchTextChange(text: String) {
-        Log.d("MusicVM",text)
-        _searchText.value = text
+        _localState.value = _localState.value.copy(searchText = text)
     }
+
 
 
     private fun loading(){
         viewModelScope.launch {
             try {
-                _isLoading.value = true
-                // 1. Perform the actual scan
+                _localState.value=_localState.value.copy(isLoading = true)
                 musicRepository.refreshSongs()
+
+
             } catch (e: Exception) {
                 // 2. Handle errors so the app doesn't stay stuck loading
                 Log.e("MusicVM", "Failed to load music", e)
             } finally {
                 // 3. THIS IS CRUCIAL: Always set loading to false
                 // regardless of success or failure.
-                _isLoading.value = false
+                _localState.value=_localState.value.copy(isLoading = false)
             }
         }
     }
-    fun playSong(song: Song) {
-        val currentList = uiState.value.songs
+    private fun observeMusicLibrary() {
+        viewModelScope.launch {
+            musicRepository.observeSongs().collect {
+                songs ->
+                val albumListMap = songs.filter { it.album.isNotBlank() }.groupBy { it.album }.toSortedMap()
+                _localState.value=_localState.value.copy(
+                    songs=songs,
+                    albums = albumListMap,
+                    currentQueue = songs
+                )
+            }
+        }
+
+    }
+    fun playSong(song: Song,currentQueueSelection: MusicCurrentQueueSelection) {
+        if(_localState.value.currentQueueSelection != currentQueueSelection){
+            queueResolver(currentQueueSelection)
+        }
+        val currentList = uiState.value.currentQueue
         val index = currentList.indexOf(song)
         if (index != -1) {
             musicController.play(currentList, index)
         }
     }
 
+    fun changeAlbum(albumTitle : String){
+        _localState.value=_localState.value.copy(selectedAlbum = albumTitle)
+    }
 
     fun togglePlayPause(){
         val p = player.value ?: return
@@ -96,6 +122,22 @@ class MusicViewModel(
         }
         else{
             p.play()
+        }
+    }
+    fun queueResolver(currentQueueSelection: MusicCurrentQueueSelection){
+        when(currentQueueSelection) {
+            is MusicCurrentQueueSelection.PlayListSongQueue -> _localState.value= _localState.value.copy(
+                currentQueueSelection = currentQueueSelection,
+                currentQueue = _localState.value.albums[currentQueueSelection.album] ?: emptyList()
+            )
+            is MusicCurrentQueueSelection.SearchedSongQueue -> _localState.value=_localState.value.copy(
+                currentQueueSelection = currentQueueSelection,
+                currentQueue = uiState.value.searchedSongs
+            )
+            MusicCurrentQueueSelection.SongListSongQueue -> _localState.value = _localState.value.copy(
+                currentQueueSelection=currentQueueSelection,
+                currentQueue = _localState.value.songs
+            )
         }
     }
 
@@ -111,16 +153,18 @@ class MusicViewModel(
         _currentPosition.value=0
         player.value?.seekToPrevious()
     }
+
+
+
     init {
         loading()
+        observeMusicLibrary()
         viewModelScope.launch {
             while (true) {
-                // Check if the player is ready and currently playing
                 val p = musicController.player.value
                 if (p != null && p.isPlaying) {
                     _currentPosition.value = p.currentPosition
                 }
-                // 500ms is a good balance for M14 performance vs smoothness
                 delay(500L)
             }
         }
@@ -134,5 +178,14 @@ data class MusicUiState(
     val isPlaying: Boolean = false,
     val isLoading: Boolean = true,
     val searchText: String = "",
-    val currentPosition: Long = 0L
+    val currentPosition: Long = 0L,
+    val currentQueue : List<Song> = emptyList(),
+    val albums: Map<String, List<Song>> = emptyMap(),
+    val selectedAlbum: String = ""
 )
+
+sealed interface MusicCurrentQueueSelection {
+    data class SearchedSongQueue(val searchText: String) : MusicCurrentQueueSelection
+    data class PlayListSongQueue(val album: String) : MusicCurrentQueueSelection
+    object SongListSongQueue : MusicCurrentQueueSelection
+}
