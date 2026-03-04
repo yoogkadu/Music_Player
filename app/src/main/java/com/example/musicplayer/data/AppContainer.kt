@@ -18,10 +18,10 @@ interface AppContainer{
     val dataStore: DataStore<Preferences>
 }
 
-class AppDataContainer(private val context: Context) : AppContainer {
+class AppDataContainer(private val context: Context ) : AppContainer {
 
     override val musicRepository: MusicRepository by lazy {
-        MainMusicRepository(musicFilesApi = AndroidMusicFilesApi(context))
+        MainMusicRepository(musicFilesApi = AndroidMusicFilesApi(context.applicationContext))
     }
     override val mapper: PlatformPermissionMapper by lazy {
         AndroidPermissionMapper()
@@ -30,9 +30,11 @@ class AppDataContainer(private val context: Context) : AppContainer {
         context.applicationContext as Application
     }
     override val musicController: MusicController by lazy{
-        MusicController(context)
+        MusicController(context.applicationContext)
     }
-    override val dataStore: DataStore<Preferences> by lazy {
-        createDataStoreAndroid(context)
+    override val dataStore: DataStore<Preferences> by lazy{
+            createDataStoreAndroid(context.applicationContext)
     }
+
+
 }

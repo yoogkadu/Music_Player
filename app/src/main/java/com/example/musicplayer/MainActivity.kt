@@ -4,9 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.example.musicplayer.data.createDataStoreAndroid
 import com.example.musicplayer.nav.MusicPlayerNavigation
 import com.example.musicplayer.ui.theme.MusicPlayerTheme
 
@@ -16,11 +14,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MusicPlayerTheme { 
-                    MusicPlayerNavigation(modifier = Modifier,
-                        prefs = remember {
-                            createDataStoreAndroid(applicationContext)
-                        }
-                    )
+                    MusicPlayerNavigation(modifier = Modifier)
+
             }
         }
     }

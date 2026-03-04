@@ -47,12 +47,9 @@ class MusicViewModel(
         val currentQueueSelection: MusicCurrentQueueSelection = MusicCurrentQueueSelection.SongListSongQueue,
         val albums : Map<String,List<Song>> = emptyMap()
     )
-    private val _localState = MutableStateFlow(LocalMusicState())
     private val _currentPosition = MutableStateFlow(0L)
 
 
-    val uiState: StateFlow<MusicUiState> = combine(
-        _localState,
     val uiState: StateFlow<MusicUiState> = combine(
         _localState,
         musicController.currentMediaId,
@@ -154,9 +151,6 @@ class MusicViewModel(
         if (index != -1) {
             musicController.load(currentList, index)
         }
-    }
-    fun changeAlbum(albumTitle : String){
-        _localState.value=_localState.value.copy(selectedAlbum = albumTitle)
     }
 
     fun changeAlbum(albumTitle : String){
@@ -294,9 +288,4 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             }
             Pair(selection, songId)
         }
-}
-sealed interface MusicCurrentQueueSelection {
-    data class SearchedSongQueue(val searchText: String) : MusicCurrentQueueSelection
-    data class PlayListSongQueue(val album: String) : MusicCurrentQueueSelection
-    object SongListSongQueue : MusicCurrentQueueSelection
 }
