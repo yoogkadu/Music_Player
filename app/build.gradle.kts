@@ -3,12 +3,17 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     kotlin("plugin.serialization") version "2.3.0"
+    id("com.google.devtools.ksp")
+    id("androidx.room")
 }
 
 android {
     namespace = "com.example.musicplayer"
     compileSdk {
         version = release(36)
+    }
+    room {
+        schemaDirectory("$projectDir/schemas")
     }
 
     defaultConfig {
@@ -61,6 +66,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.runtime.saveable)
+    implementation(libs.androidx.sqlite.bundled)
 
 
 
@@ -89,8 +95,14 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.ui.compose)
 
-    implementation(libs.androidx.compose.ui.text.google.fonts) // Check Maven for the latest version
+    implementation(libs.androidx.compose.ui.text.google.fonts)
 
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+
+    implementation(libs.gson)
 
 
 }

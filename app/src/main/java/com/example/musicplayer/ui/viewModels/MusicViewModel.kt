@@ -38,15 +38,6 @@ class MusicViewModel(
         val albums : Map<String,List<Song>> = emptyMap(),
     )
     private val _localState = MutableStateFlow(LocalMusicState())
-    private data class LocalMusicState(
-        val isLoading: Boolean = false,
-        val searchText: String = "",
-        val selectedAlbum: String? = null,
-        val songs: List<Song> = emptyList(),
-        val currentQueue: List<Song> = emptyList(),
-        val currentQueueSelection: MusicCurrentQueueSelection = MusicCurrentQueueSelection.SongListSongQueue,
-        val albums : Map<String,List<Song>> = emptyMap()
-    )
     private val _currentPosition = MutableStateFlow(0L)
 
 

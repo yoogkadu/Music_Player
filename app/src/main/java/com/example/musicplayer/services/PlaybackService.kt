@@ -11,7 +11,6 @@ import com.example.musicplayer.MainActivity
 
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
-
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this)

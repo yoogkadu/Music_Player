@@ -3,7 +3,6 @@ package com.example.musicplayer.ui.screens
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -63,7 +62,6 @@ fun AlbumContentListScreen(modifier: Modifier = Modifier,album: List<Song>,
                        defaultIcon,
                        expandMore
                    )
-
                }
             }
         }
@@ -92,7 +90,6 @@ fun StickyAlbumHeader(modifier: Modifier = Modifier,song: Song,painter: Painter,
                 placeholder = painter,
                 error = painter,
                 contentDescription = song.album,
-
             )
             Column() {
                 Text(
@@ -100,7 +97,7 @@ fun StickyAlbumHeader(modifier: Modifier = Modifier,song: Song,painter: Painter,
                 )
                 Spacer(modifier.height(20.dp))
                 Text(
-                    text = song.artist
+                    text = song.albumArtist
                 )
             }
         }
