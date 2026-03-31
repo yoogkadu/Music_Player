@@ -27,4 +27,10 @@
     <string name="search_placeholder">Enter Here</string>
     <string name="back">Back</string>
     <string name="albumEmptyText">The Album is Empty</string>
+    <string name="most_played">Most Played</string>
+    <string name="favorites">Favorites</string>
+    <string name="recently_played">Recently Played</string>
+    <string name="addYourFirstPlaylist">Create your first playlist</string>
+    <string name="album">Album</string>
+    <string name="library">Library</string>
 </resources>

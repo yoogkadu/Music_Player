@@ -1,10 +1,12 @@
 package com.example.musicplayer.database.dao
 
+import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
 import com.example.musicplayer.database.table.LyricsEntity
 import kotlinx.coroutines.flow.Flow
 
+@Dao
 interface LyricsDao {
     @Upsert
     suspend fun upsertLyrics(lyrics: LyricsEntity)

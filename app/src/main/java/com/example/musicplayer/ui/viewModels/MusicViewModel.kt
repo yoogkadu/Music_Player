@@ -1,22 +1,25 @@
 package com.example.musicplayer.ui.viewModels
 
 import android.util.Log
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.musicplayer.data.DataStoreInterface
 import com.example.musicplayer.data.MusicController
 import com.example.musicplayer.data.MusicRepository
 import com.example.musicplayer.data.Song
+import com.example.musicplayer.database.DataBaseInterface
+import com.example.musicplayer.database.table.PlaylistEntity
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -24,10 +27,10 @@ import kotlinx.coroutines.launch
 class MusicViewModel(
     private val musicRepository: MusicRepository,
     val musicController: MusicController,
-    dataStore: DataStore<Preferences>
+    private val dataStoreInterface: DataStoreInterface,
+    private val dataBaseInterface: DataBaseInterface
 ): ViewModel(){
     val player = musicController.player
-    val userPreferencesRepository = UserPreferencesRepository(dataStore)
     private data class LocalMusicState(
         val isLoading: Boolean = false,
         val searchText: String = "",
@@ -36,6 +39,7 @@ class MusicViewModel(
         val currentQueue: List<Song> = emptyList(),
         val currentQueueSelection: MusicCurrentQueueSelection = MusicCurrentQueueSelection.SongListSongQueue,
         val albums : Map<String,List<Song>> = emptyMap(),
+        val playlists : Map<String,List<Song>> = emptyMap()
     )
     private val _localState = MutableStateFlow(LocalMusicState())
     private val _currentPosition = MutableStateFlow(0L)
@@ -64,8 +68,9 @@ class MusicViewModel(
             searchText = local.searchText,
             currentPosition = position,
             currentQueue = local.currentQueue,
+            selectedAlbum = local.selectedAlbum ?: "",
             albums = local.albums,
-            selectedAlbum = local.selectedAlbum ?: ""
+            playlists = local.playlists
         )
     }.stateIn(
         scope = viewModelScope,
@@ -79,7 +84,7 @@ class MusicViewModel(
 
 
     suspend fun loadDataPreference() {
-        val (selection, songId)  = userPreferencesRepository.queueSelectionFlow.first()
+        val (selection, songId)  = dataStoreInterface.queueSelectionFlow.first()
         val currentSongs = _localState.value.songs
         if (currentSongs.isNotEmpty()) {
             val song : Song = currentSongs.find { it.id == songId } ?: currentSongs.first()
@@ -93,8 +98,6 @@ class MusicViewModel(
                 _localState.value=_localState.value.copy(isLoading = true)
                 musicRepository.refreshSongs()
                 loadDataPreference()
-
-
             } catch (e: Exception) {
                 // 2. Handle errors so the app doesn't stay stuck loading
                 Log.e("MusicVM", "Failed to load music", e)
@@ -130,7 +133,7 @@ class MusicViewModel(
         }
         viewModelScope.launch {
             val currentId = musicController.currentMediaId.value
-            userPreferencesRepository.saveQueueSelection(currentQueueSelection, currentId)
+            dataStoreInterface.saveQueueSelection(currentQueueSelection, currentId)
         }
     }
     fun loadSong(song: Song,currentQueueSelection: MusicCurrentQueueSelection){
@@ -159,7 +162,7 @@ class MusicViewModel(
     }
     fun queueResolver(currentQueueSelection: MusicCurrentQueueSelection){
         when(currentQueueSelection) {
-            is MusicCurrentQueueSelection.PlayListSongQueue -> _localState.value= _localState.value.copy(
+            is MusicCurrentQueueSelection.AlbumSongQueue -> _localState.value= _localState.value.copy(
                 currentQueueSelection = currentQueueSelection,
                 currentQueue = _localState.value.albums[currentQueueSelection.album] ?: emptyList()
             )
@@ -167,9 +170,13 @@ class MusicViewModel(
                 currentQueueSelection = currentQueueSelection,
                 currentQueue = uiState.value.searchedSongs
             )
-            MusicCurrentQueueSelection.SongListSongQueue -> _localState.value = _localState.value.copy(
+            is MusicCurrentQueueSelection.SongListSongQueue -> _localState.value = _localState.value.copy(
                 currentQueueSelection=currentQueueSelection,
                 currentQueue = _localState.value.songs
+            )
+            is MusicCurrentQueueSelection.PlaylistSongQueue -> _localState.value = _localState.value.copy(
+                currentQueueSelection=currentQueueSelection,
+
             )
         }
     }
@@ -188,10 +195,36 @@ class MusicViewModel(
     }
 
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun loadAllPlaylists() {
+        viewModelScope.launch {
+            // We combine the playlist stream with the master song list
+            combine(
+                dataBaseInterface.getPlaylist(),
+                _localState.map { it.songs }.distinctUntilChanged()
+            ) { playlistEntities, masterSongList ->
+                playlistEntities to masterSongList
+            }.flatMapLatest { (entities, masterSongs) ->
+                if (entities.isEmpty()) return@flatMapLatest flowOf(emptyMap<String, List<Song>>())
 
+                val playlistFlows = entities.map { entity ->
+                    dataBaseInterface.getSongsFromPlaylistId(entity.playlistId).map { songEntities ->
+                        val songsInPlaylist = songEntities.mapNotNull { songEntity ->
+                            masterSongs.find { it.id == songEntity.hash }
+                        }
+                        entity.name to songsInPlaylist
+                    }
+                }
+                combine(playlistFlows) { it.toMap() }
+            }.collect { playlistMap ->
+                _localState.value = _localState.value.copy(playlists = playlistMap)
+            }
+        }
+    }
     init {
         loading()
         observeMusicLibrary()
+        loadAllPlaylists()
         viewModelScope.launch {
             while (true) {
                 val p = musicController.player.value
@@ -202,12 +235,9 @@ class MusicViewModel(
             }
         }
         viewModelScope.launch {
-            // Collect the currentMediaId. Every time it changes (manual click OR auto-skip),
-            // this block runs.
             musicController.currentMediaId.collect { mediaId ->
                 if (mediaId != null) {
-                    // We use a non-blocking launch here
-                    userPreferencesRepository.saveQueueSelection(
+                    dataStoreInterface.saveQueueSelection(
                         selection = _localState.value.currentQueueSelection,
                         songId = mediaId
                     )
@@ -215,6 +245,7 @@ class MusicViewModel(
             }
         }
     }
+
 }
 
 data class MusicUiState(
@@ -227,56 +258,17 @@ data class MusicUiState(
     val currentPosition: Long = 0L,
     val currentQueue : List<Song> = emptyList(),
     val albums: Map<String, List<Song>> = emptyMap(),
+    val playlists: Map<String, List<Song>> = emptyMap(),
     val selectedAlbum: String = ""
+
 )
 
 sealed interface MusicCurrentQueueSelection {
     data class SearchedSongQueue(val searchText: String) : MusicCurrentQueueSelection
-    data class PlayListSongQueue(val album: String) : MusicCurrentQueueSelection
+    data class AlbumSongQueue(val album: String) : MusicCurrentQueueSelection
     object SongListSongQueue : MusicCurrentQueueSelection
+
+    data class PlaylistSongQueue(val playlistId : Int) : MusicCurrentQueueSelection
 }
 
 
-private object PreferencesKeys {
-    val QUEUE_TYPE = stringPreferencesKey("queue_type")
-    val QUEUE_ARGUMENT = stringPreferencesKey("queue_argument") // For Album Name or Search Text
-    val LAST_SONG_ID = stringPreferencesKey("last_song_id")
-}
-
-class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
-    suspend fun saveQueueSelection(selection: MusicCurrentQueueSelection, songId: String?) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LAST_SONG_ID] = songId ?: ""
-
-            when (selection) {
-                is MusicCurrentQueueSelection.PlayListSongQueue -> {
-                    preferences[PreferencesKeys.QUEUE_TYPE] = "ALBUM"
-                    preferences[PreferencesKeys.QUEUE_ARGUMENT] = selection.album
-                }
-                is MusicCurrentQueueSelection.SearchedSongQueue -> {
-                    preferences[PreferencesKeys.QUEUE_TYPE] = "SEARCH"
-                    preferences[PreferencesKeys.QUEUE_ARGUMENT] = selection.searchText
-                }
-                MusicCurrentQueueSelection.SongListSongQueue -> {
-                    preferences[PreferencesKeys.QUEUE_TYPE] = "ALL_SONGS"
-                    preferences[PreferencesKeys.QUEUE_ARGUMENT] = ""
-                }
-            }
-        }
-    }
-
-    val queueSelectionFlow: Flow<Pair<MusicCurrentQueueSelection, String?>> = dataStore.data
-        .map { preferences ->
-            val type = preferences[PreferencesKeys.QUEUE_TYPE] ?: "ALL_SONGS"
-            val arg = preferences[PreferencesKeys.QUEUE_ARGUMENT] ?: ""
-            val songId = preferences[PreferencesKeys.LAST_SONG_ID].let {
-                text -> if (text.isNullOrEmpty()) null else text
-            }
-            val selection = when (type) {
-                "ALBUM" -> MusicCurrentQueueSelection.PlayListSongQueue(arg)
-                "SEARCH" -> MusicCurrentQueueSelection.SearchedSongQueue(arg)
-                else -> MusicCurrentQueueSelection.SongListSongQueue
-            }
-            Pair(selection, songId)
-        }
-}

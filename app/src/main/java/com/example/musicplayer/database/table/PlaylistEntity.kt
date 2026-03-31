@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "playlists")
 data class PlaylistEntity(
     @PrimaryKey(autoGenerate = true)
-    val playlistId: Long = 0,
+    val playlistId: Int = 0,
     val name: String,
     val createdAt: Long
 )
@@ -33,7 +33,7 @@ data class PlaylistEntity(
     indices = [Index("playlistId"), Index("songHash")]
 )
 data class PlaylistSongCrossRef(
-    val playlistId: Long,
+    val playlistId: Int,
     val songHash: String,
     val sequenceOrder: Int
 )

@@ -1,8 +1,6 @@
 package com.example.musicplayer
 
 import android.app.Application
-import com.example.musicplayer.data.AppContainer
-import com.example.musicplayer.data.AppDataContainer
 
 class MusicApplication : Application() {
 

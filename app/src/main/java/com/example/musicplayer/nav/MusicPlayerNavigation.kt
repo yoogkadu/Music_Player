@@ -36,8 +36,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,7 +55,7 @@ import com.example.musicplayer.ui.bottomNavigation.BottomNavBar
 import com.example.musicplayer.ui.screens.AlbumScreen
 import com.example.musicplayer.ui.screens.MainPlayer
 import com.example.musicplayer.ui.screens.PermissionScreen
-import com.example.musicplayer.ui.screens.AlbumScreen
+import com.example.musicplayer.ui.screens.LibraryScreen
 import com.example.musicplayer.ui.screens.SearchScreen
 import com.example.musicplayer.ui.screens.SongListScreen
 import com.example.musicplayer.ui.theme.MusicPlayerTheme
@@ -294,7 +292,7 @@ fun HomePagerContent(
                 }
             )
         }
-        is HomeScreenRoute.Playlist -> AlbumScreen(albumList = albums,
+        is HomeScreenRoute.Album -> AlbumScreen(albumList = albums,
             onAlbumClick = onAlbumClick
             , isAlbumSelected = isAlbumSelected,
             toggleAlbumSelected = {
@@ -303,7 +301,12 @@ fun HomePagerContent(
             selectedAlbum = selectedAlbum,
             onSongClick = {
                 song->
-                onSongClick(song,MusicCurrentQueueSelection.PlayListSongQueue(selectedAlbum))
+                onSongClick(song,MusicCurrentQueueSelection.AlbumSongQueue(selectedAlbum))
             })
+        is HomeScreenRoute.Library -> LibraryScreen(
+            onLibraryItemClick = {},
+            onPlaylistClick = {},
+            onAddPlaylistClick = {}
+        )
     }
 }

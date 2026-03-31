@@ -14,11 +14,14 @@ sealed class HomeScreenRoute(
     object Search : HomeScreenRoute(R.string.search, R.drawable.round_search_24,1)
 
     object List : HomeScreenRoute(R.string.list, R.drawable.round_list_24,2)
-    object Playlist : HomeScreenRoute(R.string.playlist, R.drawable.instrument_playlist_svgrepo_com,3)
+    object Album : HomeScreenRoute(R.string.album, R.drawable.instrument_playlist_svgrepo_com,3)
+    object Library : HomeScreenRoute(R.string.library, R.drawable.round_library_music_24,4)
+
     companion object {
         val routes = listOf(
             Home, Search, List,
-            Playlist
+            Album, Library
+
         )
         fun getByIndex(index: Int) = routes.first { it.index == index }
 

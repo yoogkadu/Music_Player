@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy.Companion.IGNORE
 import androidx.room.Query
+import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import androidx.room.Upsert
 import com.example.musicplayer.database.table.PlaylistEntity
@@ -13,7 +14,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlaylistDao{
-
     @Upsert()
     suspend fun insertPlaylist(playlistEntity: PlaylistEntity) : Long
 
@@ -22,15 +22,13 @@ interface PlaylistDao{
 
     @Query("SELECT * FROM PLAYLISTS ORDER BY createdAt DESC")
     fun getALlPlaylistFlow() : Flow<List<PlaylistEntity>>
-
     @Query("""
-        SELECT * FROM songs s
+        SELECT s.* FROM songs s
         INNER JOIN playlist_song_cross_ref r ON s.hash = r.songHash
-        Where r.playlistId = :playlistId
+        and r.playlistId = :playlistId
         ORDER BY r.sequenceOrder ASC
     """)
-    fun getSongInPlayListFlow(playlistId : Long) : Flow<List<SongEntity>>
-
+    fun getSongInPlayListFlow(playlistId : Int) : Flow<List<SongEntity>>
     @Transaction
     suspend fun safeAddSongToPlaylist(playlistEntity: PlaylistEntity,songHash : String){
         val playlistId = insertPlaylist(playlistEntity)

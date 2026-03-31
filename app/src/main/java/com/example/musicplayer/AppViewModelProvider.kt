@@ -6,6 +6,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
 import com.example.musicplayer.ui.viewModels.MusicViewModel
+import com.example.musicplayer.data.AndroidDataStoreInterface
+import com.example.musicplayer.database.AndroidDataBaseInterface
 
 
 object AppViewModelProvider{
@@ -14,7 +16,8 @@ object AppViewModelProvider{
             val application = MusicApplication()
             MusicViewModel(application.container.musicRepository,
                 application.container.musicController,
-                application.container.dataStore
+                AndroidDataStoreInterface(application.container.dataStore),
+                AndroidDataBaseInterface(application.container.database)
             )
         }
         initializer {

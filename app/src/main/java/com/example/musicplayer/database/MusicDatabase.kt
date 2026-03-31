@@ -2,6 +2,7 @@ package com.example.musicplayer.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.example.musicplayer.database.dao.AudioAnalysisDao
 import com.example.musicplayer.database.dao.LyricsDao
 import com.example.musicplayer.database.dao.PlayBackEventDao
@@ -13,6 +14,7 @@ import com.example.musicplayer.database.table.PlaybackEventEntity
 import com.example.musicplayer.database.table.PlaylistEntity
 import com.example.musicplayer.database.table.PlaylistSongCrossRef
 import com.example.musicplayer.database.table.SongEntity
+import com.example.musicplayer.database.utils.Converters
 
 @Database(
     version = 1,
@@ -26,6 +28,7 @@ import com.example.musicplayer.database.table.SongEntity
         LyricsEntity::class
     ]
 )
+@TypeConverters(Converters::class)
 abstract class MusicDatabase: RoomDatabase() {
     abstract fun songEntityDao() : SongEntityDao
     abstract fun playlistDao() : PlaylistDao

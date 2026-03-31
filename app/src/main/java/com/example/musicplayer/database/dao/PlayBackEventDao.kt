@@ -26,6 +26,9 @@ interface PlayBackEventDao {
 
     )
     suspend fun getMostSkippedSongs() : List<SongStats>
+    @Query("Delete from playback_events where eventId Not in (Select eventId from playback_events" +
+            " order by timestamp desc limit :maxRecords)")
+    suspend fun pruneOldEvents(maxRecords: Int = 5000)
 }
 
 data class SongStats(val songHash: String, val skipCount: Int)
