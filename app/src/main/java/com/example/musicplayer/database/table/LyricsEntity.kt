@@ -10,15 +10,15 @@ import androidx.room.PrimaryKey
     foreignKeys = [
         ForeignKey(
             entity = SongEntity::class,
-            parentColumns = ["hash"],
-            childColumns = ["songHash"],
+            parentColumns = ["songId"],
+            childColumns = ["songId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("songHash")]
+    indices = [Index("songId")]
 )
 data class LyricsEntity(
-    @PrimaryKey val songHash: String,
+    @PrimaryKey val songId: String,
     val rawContent: String,
     val source: String, // EMBEDDED, LOCAL_FILE
     val isSynced: Boolean

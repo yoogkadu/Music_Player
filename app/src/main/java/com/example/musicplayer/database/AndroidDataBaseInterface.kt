@@ -1,6 +1,7 @@
 package com.example.musicplayer.database
 
 import com.example.musicplayer.data.Song
+import com.example.musicplayer.database.dao.PlaylistSongInfo
 import com.example.musicplayer.database.table.PlaylistEntity
 import com.example.musicplayer.database.table.PlaylistSongCrossRef
 import com.example.musicplayer.database.table.SongEntity
@@ -12,26 +13,23 @@ class AndroidDataBaseInterface(private val database: MusicDatabase) : DataBaseIn
     }
 
     override  fun getSongsFromPlaylistId(playlistId: Int): Flow<List<SongEntity>> {
-         return database.playlistDao().getSongInPlayListFlow(playlistId)
+         return database.playlistDao().getSongInPlayListFlow(playlistId.toLong())
     }
 
-    override suspend fun createPlaylist(
-        playlistEntity: PlaylistEntity,
-        songs: List<SongEntity>
+    override suspend fun createPlaylistAndAddSongs(
+        playlistName : String,
+        songs : List<Song>
     ) {
-        database.playlistDao().insertPlaylist(playlistEntity)
-        songs.forEach {
-            song ->
-            database.playlistDao().safeAddSongToPlaylist(
-                PlaylistEntity(
-                    playlistId = playlistEntity.playlistId,
-                    name = playlistEntity.name,
-                    createdAt = playlistEntity.createdAt
-                ),
-                songHash = song.hash
-            )
-        }
+        database.playlistDao().createPlaylistAndAddSongs(playlistName = playlistName, songs = songs)
     }
 
+
+    override  fun getAllPlaylistSongs(): Flow<List<PlaylistSongInfo>> {
+        return database.playlistDao().getAllPlaylistSongs()
+    }
+
+    override suspend fun addOrUpdateSongs(songs: List<Song>) {
+        database.songEntityDao().smartUpsert(songs)
+    }
 
 }

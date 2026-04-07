@@ -49,6 +49,7 @@ import com.example.musicplayer.AppViewModelProvider
 import com.example.musicplayer.R
 import com.example.musicplayer.data.BootStrapState
 import com.example.musicplayer.data.Song
+import com.example.musicplayer.database.table.PlaylistEntity
 import com.example.musicplayer.permission.AndroidPermissionMapper
 import com.example.musicplayer.ui.bottomNavigation.BottomMiniMusicPlayer
 import com.example.musicplayer.ui.bottomNavigation.BottomNavBar
@@ -62,6 +63,10 @@ import com.example.musicplayer.ui.theme.MusicPlayerTheme
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
 import com.example.musicplayer.ui.viewModels.MusicCurrentQueueSelection
 import com.example.musicplayer.ui.viewModels.MusicViewModel
+import com.example.musicplayer.ui.screens.PlaylistContentListScreen
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 
 
@@ -180,7 +185,13 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
                                albumTitle->
                                musicViewModel.changeAlbum(albumTitle)
                            },
-                           selectedAlbum = musicUiState.value.selectedAlbum
+                           selectedAlbum = musicUiState.value.selectedAlbum,
+                           createPlaylist = {
+                               playlistName, songList ->
+                               musicViewModel.createPlaylistAndAddSongs(playlistName,songList)
+                           }
+                           ,
+                           playlists = musicUiState.value.playlists
 
                        )
                    }
@@ -266,9 +277,13 @@ fun HomePagerContent(
     searchSongList: List<Song>,
     albums: Map<String,List<Song>> = emptyMap(),
     onAlbumClick: (String) -> Unit,
-    selectedAlbum: String
+    selectedAlbum: String,
+    createPlaylist: (playlistName : String,songList : List<Song>) -> Unit,
+    playlists : Map<PlaylistEntity, List<Song>>
     ) {
-    var isAlbumSelected by retain { mutableStateOf(false) }
+    var isAlbumSelected by rememberSaveable { mutableStateOf(false) }
+    var isPlaylistSelected by rememberSaveable { mutableStateOf(false) }
+    var selectedPlaylist: com.example.musicplayer.database.table.PlaylistEntity? by remember { mutableStateOf(null) }
     when (route) {
         is HomeScreenRoute.Home -> Surface(modifier = Modifier.fillMaxSize()){ Text("Hello") }
         is HomeScreenRoute.Search -> SearchScreen(
@@ -303,10 +318,28 @@ fun HomePagerContent(
                 song->
                 onSongClick(song,MusicCurrentQueueSelection.AlbumSongQueue(selectedAlbum))
             })
-        is HomeScreenRoute.Library -> LibraryScreen(
-            onLibraryItemClick = {},
-            onPlaylistClick = {},
-            onAddPlaylistClick = {}
-        )
+        is HomeScreenRoute.Library -> {
+            if (!isPlaylistSelected) {
+                LibraryScreen(
+                    onLibraryItemClick = {},
+                    onPlaylistClick = { playlist -> 
+                        selectedPlaylist = playlist
+                        isPlaylistSelected = true
+                    },
+                    songList = songList,
+                    onCreatePlaylist = createPlaylist,
+                    playlists = playlists
+                )
+            } else {
+                PlaylistContentListScreen(
+                    playlist = selectedPlaylist!!,
+                    songs = playlists[selectedPlaylist] ?: emptyList(),
+                    onBack = { isPlaylistSelected = false },
+                    onSongClick = { song ->
+                        onSongClick(song, MusicCurrentQueueSelection.PlaylistSongQueue(selectedPlaylist!!.name))
+                    }
+                )
+            }
+        }
     }
 }

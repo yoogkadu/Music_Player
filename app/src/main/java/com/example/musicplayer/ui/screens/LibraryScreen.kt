@@ -1,6 +1,7 @@
 package com.example.musicplayer.ui.screens
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -31,71 +36,88 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.musicplayer.R
+import com.example.musicplayer.data.Song
 import com.example.musicplayer.database.table.PlaylistEntity
-import com.example.musicplayer.ui.theme.MusicPlayerTheme
 
 @Composable
 fun LibraryScreen(
-        onLibraryItemClick: (LibraryItems) -> Unit,
-        onPlaylistClick: (PlaylistEntity) -> Unit,
-        onAddPlaylistClick: () -> Unit,
-        playlists: List<Pair<PlaylistEntity, Uri>> = emptyList()
+    onLibraryItemClick: (LibraryItems) -> Unit,
+    onPlaylistClick: (PlaylistEntity) -> Unit,
+    playlists: Map<PlaylistEntity,List<Song> > = emptyMap(),
+    songList : List<Song>,
+    onCreatePlaylist : (playlistName : String, songList : List<Song> ) -> Unit
 ) {
-
-    LazyColumn(
+    Box(){
+        var isAddScreenOpen by remember { mutableStateOf(false) }
+        LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Text(
+        ) {
+            item {
+                Text(
                     text = "Library",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-        item {
-            Row(
+                )
+            }
+            item {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                LibraryItems.items.forEach { item ->
-                    LibraryPillChip(
+                ) {
+                    LibraryItems.items.forEach { item ->
+                        LibraryPillChip(
                             label = stringResource(item.stringId),
                             onClick = { onLibraryItemClick(item) }
+                        )
+                    }
+                }
+            }
+
+            // 3. Playlists Section Header
+            item {
+                Text(
+                    text = "Your Playlists",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            if (playlists.isEmpty()) {
+                item { EmptyState(onAddClick = {
+                    isAddScreenOpen = true
+                }) }
+            } else {
+                items(playlists.entries.toList()) { playlistEntry ->
+                    PlaylistCard(
+                        playlist = playlistEntry.key,
+                        onClick = { onPlaylistClick(playlistEntry.key) },
+                        uri = playlistEntry.value.firstOrNull()?.albumArtUri ?: Uri.EMPTY
                     )
                 }
             }
         }
-
-        // 3. Playlists Section Header
-        item {
-            Text(
-                    text = "Your Playlists",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp)
+        if(isAddScreenOpen){
+            BackHandler() {
+                isAddScreenOpen=false
+            }
+            CreatePlaylistOverlay(songList = songList, onDismissRequest = { isAddScreenOpen=false },
+                onCreatePlaylist = {
+                    playlistName, selectedSongs ->
+                    onCreatePlaylist(playlistName,selectedSongs)
+                    isAddScreenOpen=false
+                }
             )
         }
-        if (playlists.isEmpty()) {
-            item { EmptyState(onAddClick = onAddPlaylistClick) }
-        } else {
-            items(playlists) { playlist ->
-                PlaylistCard(
-                        playlist = playlist.first,
-                        onClick = { onPlaylistClick(playlist.first) },
-                        uri = playlist.second
-                )
-            }
-        }
     }
+
 }
 
 @Composable
@@ -133,34 +155,34 @@ fun EmptyState(onAddClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun LibraryScreenPrev() {
-    MusicPlayerTheme() {
-        LibraryScreen(
-                onLibraryItemClick = {},
-                onPlaylistClick = {},
-                onAddPlaylistClick = {},
-                           playlists = listOf(
-                               Pair(
-                                   PlaylistEntity(name = "Chill Vibes", createdAt =
-                 System.currentTimeMillis()),
-                                    Uri.EMPTY
-                                ),
-                               Pair(
-                                    PlaylistEntity(name = "Gym Motivation", createdAt =
-                 System.currentTimeMillis()),
-                                   Uri.EMPTY
-                               ),
-                               Pair(
-                                  PlaylistEntity(name = "Coding Flow", createdAt =
-                 System.currentTimeMillis()),
-                                    Uri.EMPTY
-                                )
-                           )
-                )
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//private fun LibraryScreenPrev() {
+//    MusicPlayerTheme() {
+//        LibraryScreen(
+//                onLibraryItemClick = {},
+//                onPlaylistClick = {},
+//                onAddPlaylistClick = {},
+//                           playlists = listOf(
+//                               Pair(
+//                                   PlaylistEntity(name = "Chill Vibes", createdAt =
+//                 System.currentTimeMillis()),
+//                                    Uri.EMPTY
+//                                ),
+//                               Pair(
+//                                    PlaylistEntity(name = "Gym Motivation", createdAt =
+//                 System.currentTimeMillis()),
+//                                   Uri.EMPTY
+//                               ),
+//                               Pair(
+//                                  PlaylistEntity(name = "Coding Flow", createdAt =
+//                 System.currentTimeMillis()),
+//                                    Uri.EMPTY
+//                                )
+//                           )
+//                )
+//    }
+//}
 
 sealed class LibraryItems(@param:StringRes val stringId: Int) {
     object MostPlayed : LibraryItems(R.string.most_played)

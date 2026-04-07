@@ -10,15 +10,15 @@ data class Song(
     val artist: String,
     val albumArtUri: Uri?,
     val album: String,
-    val albumArtist: String
+    val albumArtist: String,
 )
 {
+    val stableId : String get() = this.id
     fun matchSong(query: String): Boolean {
         val matchingCombination  = listOf(
             "$artist $album",
             "$title $artist",
-            "$title $album",
-            "$title $albumArtist",
+            "$title $album", 
             "$artist $album",
             artist,
             title,
@@ -30,4 +30,8 @@ data class Song(
         }
 
     }
+    fun matchSongWithEntity(songEntityId: String): Boolean {
+        return songEntityId==this.id
+    }
+
 }

@@ -10,15 +10,15 @@ import androidx.room.PrimaryKey
     foreignKeys = [
         ForeignKey(
             entity = SongEntity::class,
-            parentColumns = ["hash"],
-            childColumns = ["songHash"],
+            parentColumns = ["songId"],
+            childColumns = ["songId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("songHash")]
+    indices = [Index("songId")]
 )
 data class AudioAnalysisEntity(
-    @PrimaryKey val songHash: String,
+    @PrimaryKey val songId: String,
     // --- FAISS & VGGish (On-Demand) ---
     val vggishEmbedding: FloatArray?,   // 128-dim Vector (Null until user triggers VGG)
     val faissIndexId: Int = -1,         // Position in the FAISS binary file
@@ -54,7 +54,7 @@ data class AudioAnalysisEntity(
         if (isVggAnalyzed != other.isVggAnalyzed) return false
         if (modelVersion != other.modelVersion) return false
         if (analysisDate != other.analysisDate) return false
-        if (songHash != other.songHash) return false
+        if (songId != other.songId) return false
         if (!vggishEmbedding.contentEquals(other.vggishEmbedding)) return false
         if (moodLabel != other.moodLabel) return false
         if (genreLabel != other.genreLabel) return false
@@ -74,7 +74,7 @@ data class AudioAnalysisEntity(
         result = 31 * result + isVggAnalyzed.hashCode()
         result = 31 * result + modelVersion
         result = 31 * result + analysisDate.hashCode()
-        result = 31 * result + songHash.hashCode()
+        result = 31 * result + songId.hashCode()
         result = 31 * result + (vggishEmbedding?.contentHashCode() ?: 0)
         result = 31 * result + (moodLabel?.hashCode() ?: 0)
         result = 31 * result + (genreLabel?.hashCode() ?: 0)

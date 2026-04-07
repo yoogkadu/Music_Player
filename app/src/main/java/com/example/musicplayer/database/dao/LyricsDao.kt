@@ -11,9 +11,9 @@ interface LyricsDao {
     @Upsert
     suspend fun upsertLyrics(lyrics: LyricsEntity)
 
-    @Query("SELECT * FROM lyrics WHERE songHash = :hash LIMIT 1")
-    fun getLyricsFlow(hash: String): Flow<LyricsEntity?>
+    @Query("SELECT * FROM lyrics WHERE songId = :songId LIMIT 1")
+    fun getLyricsFlow(songId: String): Flow<LyricsEntity?>
 
-    @Query("DELETE FROM lyrics WHERE songHash = :hash")
-    suspend fun deleteLyrics(hash: String)
+    @Query("DELETE FROM lyrics WHERE songId = :songId")
+    suspend fun deleteLyrics(songId: String)
 }

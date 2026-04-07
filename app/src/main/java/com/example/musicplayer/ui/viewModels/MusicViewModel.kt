@@ -1,6 +1,7 @@
 package com.example.musicplayer.ui.viewModels
 
 import android.util.Log
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.musicplayer.data.DataStoreInterface
@@ -9,6 +10,8 @@ import com.example.musicplayer.data.MusicRepository
 import com.example.musicplayer.data.Song
 import com.example.musicplayer.database.DataBaseInterface
 import com.example.musicplayer.database.table.PlaylistEntity
+import com.example.musicplayer.database.table.PlaylistSongCrossRef
+import com.example.musicplayer.database.table.SongEntity
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,8 +24,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 class MusicViewModel(
     private val musicRepository: MusicRepository,
@@ -32,45 +38,50 @@ class MusicViewModel(
 ): ViewModel(){
     val player = musicController.player
     private data class LocalMusicState(
-        val isLoading: Boolean = false,
         val searchText: String = "",
         val selectedAlbum: String? = null,
-        val songs: List<Song> = emptyList(),
         val currentQueue: List<Song> = emptyList(),
         val currentQueueSelection: MusicCurrentQueueSelection = MusicCurrentQueueSelection.SongListSongQueue,
+        val currentMediaId : String? = null,
+        val isPlaying: Boolean = false,
+        val playListName : String? = null
+    )
+    private data class SlowUpdateMusicState(
+        val isLoading: Boolean = false,
+        val songs: List<Song> = emptyList(),
         val albums : Map<String,List<Song>> = emptyMap(),
-        val playlists : Map<String,List<Song>> = emptyMap()
+        val playlists : Map<PlaylistEntity,List<Song>> = emptyMap()
+    )
+    private data class FastUpdateMusicState(
+        val currentPosition: Long = 0L
     )
     private val _localState = MutableStateFlow(LocalMusicState())
-    private val _currentPosition = MutableStateFlow(0L)
-
+    private val _slowUpdateLocalState = MutableStateFlow(SlowUpdateMusicState())
+    private val _fastUpdateLocalState = MutableStateFlow(FastUpdateMusicState())
 
     val uiState: StateFlow<MusicUiState> = combine(
         _localState,
-        musicController.currentMediaId,
-        musicController.isPlaying,
-        _currentPosition
-    ) { local, mediaId, isPlaying, position ->
+        _slowUpdateLocalState,
+        _fastUpdateLocalState
+    ) { local, slow, fast ->
         val filteredSongs = if (local.searchText.isBlank()) {
-            local.songs
+            slow.songs
         } else {
-            local.songs.filter { it.matchSong(local.searchText) }
+            slow.songs.filter { it.matchSong(local.searchText) }
         }
-        val currentSong = if (!mediaId.isNullOrEmpty()) {
-            local.songs.find { it.id == mediaId }
-        } else null
+        val currentSong = slow.songs.find { it.id == local.currentMediaId }
         MusicUiState(
-            songs = local.songs,
+            songs = slow.songs,
             searchedSongs = filteredSongs,
             currentSong = currentSong,
-            isPlaying = isPlaying,
-            isLoading = local.isLoading,
+            isPlaying = local.isPlaying,
+            isLoading = slow.isLoading,
             searchText = local.searchText,
-            currentPosition = position,
+            currentPosition = fast.currentPosition,
             currentQueue = local.currentQueue,
             selectedAlbum = local.selectedAlbum ?: "",
-            albums = local.albums,
-            playlists = local.playlists
+            albums = slow.albums,
+            playlists = slow.playlists
         )
     }.stateIn(
         scope = viewModelScope,
@@ -81,21 +92,18 @@ class MusicViewModel(
     fun onSearchTextChange(text: String) {
         _localState.value = _localState.value.copy(searchText = text)
     }
-
-
     suspend fun loadDataPreference() {
         val (selection, songId)  = dataStoreInterface.queueSelectionFlow.first()
-        val currentSongs = _localState.value.songs
+        val currentSongs = _slowUpdateLocalState.value.songs
         if (currentSongs.isNotEmpty()) {
             val song : Song = currentSongs.find { it.id == songId } ?: currentSongs.first()
             loadSong(song, selection)
         }
     }
-
     private fun loading(){
         viewModelScope.launch {
             try {
-                _localState.value=_localState.value.copy(isLoading = true)
+                _slowUpdateLocalState.update { it.copy(isLoading = true) }
                 musicRepository.refreshSongs()
                 loadDataPreference()
             } catch (e: Exception) {
@@ -104,7 +112,7 @@ class MusicViewModel(
             } finally {
                 // 3. THIS IS CRUCIAL: Always set loading to false
                 // regardless of success or failure.
-                _localState.value=_localState.value.copy(isLoading = false)
+                _slowUpdateLocalState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -113,14 +121,15 @@ class MusicViewModel(
             musicRepository.observeSongs().collect {
                 songs ->
                 val albumListMap = songs.filter { it.album.isNotBlank() }.groupBy { it.album }.toSortedMap()
-                _localState.value=_localState.value.copy(
-                    songs=songs,
-                    albums = albumListMap,
-                    currentQueue = songs
-                )
+                _slowUpdateLocalState.update {
+                    it.copy(songs=songs, albums = albumListMap)
+                }
+                _localState.update { it.copy(currentQueue = songs) }
+                if (songs.isNotEmpty()) {
+                    addOrUpdateSongsInDb(songs)
+                }
             }
         }
-
     }
     fun playSong(song: Song,currentQueueSelection: MusicCurrentQueueSelection) {
         if(_localState.value.currentQueueSelection != currentQueueSelection){
@@ -164,7 +173,7 @@ class MusicViewModel(
         when(currentQueueSelection) {
             is MusicCurrentQueueSelection.AlbumSongQueue -> _localState.value= _localState.value.copy(
                 currentQueueSelection = currentQueueSelection,
-                currentQueue = _localState.value.albums[currentQueueSelection.album] ?: emptyList()
+                currentQueue = _slowUpdateLocalState.value.albums[currentQueueSelection.album] ?: emptyList()
             )
             is MusicCurrentQueueSelection.SearchedSongQueue -> _localState.value=_localState.value.copy(
                 currentQueueSelection = currentQueueSelection,
@@ -172,7 +181,7 @@ class MusicViewModel(
             )
             is MusicCurrentQueueSelection.SongListSongQueue -> _localState.value = _localState.value.copy(
                 currentQueueSelection=currentQueueSelection,
-                currentQueue = _localState.value.songs
+                currentQueue = _slowUpdateLocalState.value.songs
             )
             is MusicCurrentQueueSelection.PlaylistSongQueue -> _localState.value = _localState.value.copy(
                 currentQueueSelection=currentQueueSelection,
@@ -185,39 +194,43 @@ class MusicViewModel(
         player.value?.stop()
     }
     fun skipToNext() {
-        _currentPosition.value=0
+        _fastUpdateLocalState.update {
+            it.copy(currentPosition = 0)
+        }
        player.value?.seekToNext()
     }
 
     fun skipToPrevious() {
-        _currentPosition.value=0
+        _fastUpdateLocalState.update {
+            it.copy(currentPosition = 0)
+        }
         player.value?.seekToPrevious()
     }
+    fun addOrUpdateSongsInDb(songs : List<Song>){
+        viewModelScope.launch {
+            dataBaseInterface.addOrUpdateSongs(songs)
+        }
+    }
 
-
-    @OptIn(ExperimentalCoroutinesApi::class)
+    fun createPlaylistAndAddSongs(playlistName : String, songList : List<Song>){
+        viewModelScope.launch {
+            dataBaseInterface.createPlaylistAndAddSongs(playlistName = playlistName,songList)
+        }
+    }
     fun loadAllPlaylists() {
         viewModelScope.launch {
-            // We combine the playlist stream with the master song list
             combine(
-                dataBaseInterface.getPlaylist(),
-                _localState.map { it.songs }.distinctUntilChanged()
-            ) { playlistEntities, masterSongList ->
-                playlistEntities to masterSongList
-            }.flatMapLatest { (entities, masterSongs) ->
-                if (entities.isEmpty()) return@flatMapLatest flowOf(emptyMap<String, List<Song>>())
-
-                val playlistFlows = entities.map { entity ->
-                    dataBaseInterface.getSongsFromPlaylistId(entity.playlistId).map { songEntities ->
-                        val songsInPlaylist = songEntities.mapNotNull { songEntity ->
-                            masterSongs.find { it.id == songEntity.hash }
-                        }
-                        entity.name to songsInPlaylist
-                    }
+                dataBaseInterface.getAllPlaylistSongs(),
+                _slowUpdateLocalState.map { it.songs }.distinctUntilChanged()
+            ) { playlistSongs, masterSongs ->
+                playlistSongs.groupBy(
+                    keySelector = { PlaylistEntity(playlistId = it.playlistId, name = it.playlistName, createdAt = it.createdAt) },
+                    valueTransform = { masterSongs.find { song -> song.matchSongWithEntity(it.songId) } }
+                ).mapValues { entry -> entry.value.filterNotNull() }
+            }.collect { map ->
+                _slowUpdateLocalState.update {
+                    it.copy(playlists = map)
                 }
-                combine(playlistFlows) { it.toMap() }
-            }.collect { playlistMap ->
-                _localState.value = _localState.value.copy(playlists = playlistMap)
             }
         }
     }
@@ -229,14 +242,16 @@ class MusicViewModel(
             while (true) {
                 val p = musicController.player.value
                 if (p != null && p.isPlaying) {
-                    _currentPosition.value = p.currentPosition
+                    _fastUpdateLocalState.update { it.copy(currentPosition = p.currentPosition) }
                 }
                 delay(500L)
             }
         }
         viewModelScope.launch {
             musicController.currentMediaId.collect { mediaId ->
-                if (mediaId != null) {
+                _localState.update {
+                    it.copy(currentMediaId = mediaId) }
+                if(mediaId!=null){
                     dataStoreInterface.saveQueueSelection(
                         selection = _localState.value.currentQueueSelection,
                         songId = mediaId
@@ -244,9 +259,16 @@ class MusicViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            musicController.isPlaying.collect {
+                playing ->
+                _localState.update { it.copy(isPlaying = playing) }
+            }
+        }
     }
 
 }
+
 
 data class MusicUiState(
     val songs: List<Song> = emptyList(),
@@ -258,17 +280,15 @@ data class MusicUiState(
     val currentPosition: Long = 0L,
     val currentQueue : List<Song> = emptyList(),
     val albums: Map<String, List<Song>> = emptyMap(),
-    val playlists: Map<String, List<Song>> = emptyMap(),
+    val playlists: Map<PlaylistEntity, List<Song>> = emptyMap(),
     val selectedAlbum: String = ""
-
 )
 
 sealed interface MusicCurrentQueueSelection {
     data class SearchedSongQueue(val searchText: String) : MusicCurrentQueueSelection
     data class AlbumSongQueue(val album: String) : MusicCurrentQueueSelection
     object SongListSongQueue : MusicCurrentQueueSelection
-
-    data class PlaylistSongQueue(val playlistId : Int) : MusicCurrentQueueSelection
+    data class PlaylistSongQueue(val playlistName : String) : MusicCurrentQueueSelection
 }
 
 

@@ -29,9 +29,13 @@ class AndroidDataStoreInterface(private val dataStore: DataStore<Preferences>) :
                     preferences[PreferencesKeys.QUEUE_TYPE] = "SEARCH"
                     preferences[PreferencesKeys.QUEUE_ARGUMENT] = selection.searchText
                 }
-                MusicCurrentQueueSelection.SongListSongQueue -> {
+                is MusicCurrentQueueSelection.SongListSongQueue -> {
                     preferences[PreferencesKeys.QUEUE_TYPE] = "ALL_SONGS"
                     preferences[PreferencesKeys.QUEUE_ARGUMENT] = ""
+                }
+                is MusicCurrentQueueSelection.PlaylistSongQueue -> {
+                    preferences[PreferencesKeys.QUEUE_TYPE] = "PLAYLIST"
+                    preferences[PreferencesKeys.QUEUE_ARGUMENT] = selection.playlistName
                 }
             }
         }

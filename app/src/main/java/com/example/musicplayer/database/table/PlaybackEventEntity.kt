@@ -10,16 +10,16 @@ import androidx.room.PrimaryKey
     foreignKeys = [
         ForeignKey(
             entity = SongEntity::class,
-            parentColumns = ["hash"],
-            childColumns = ["songHash"],
+            parentColumns = ["songId"],
+            childColumns = ["songId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("songHash")]
+    indices = [Index("songId")]
 )
 data class PlaybackEventEntity(
     @PrimaryKey(autoGenerate = true) val eventId: Long = 0,
-    val songHash: String,
+    val songId: String,
     val sessionId: String, // UUID to group events
     val eventType: String, // PLAY, SKIP, REPEAT
     val listenDuration: Long,

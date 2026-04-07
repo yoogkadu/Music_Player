@@ -20,9 +20,9 @@ interface PlayBackEventDao {
     fun getRecentSessionHistoryFlow(limit : Int = 50) : Flow<List<PlaybackEventEntity>>
 
     @Query(
-        "SELECT songHash, COUNT(*) as skipCount From playback_events "
+        "SELECT songId, COUNT(*) as skipCount From playback_events "
         + "WHERE eventType = 'SKIP' "
-        +"GROUP BY songHash ORDER BY skipCount DESC LIMIT 10"
+        +"GROUP BY songId ORDER BY skipCount DESC LIMIT 10"
 
     )
     suspend fun getMostSkippedSongs() : List<SongStats>
@@ -31,4 +31,4 @@ interface PlayBackEventDao {
     suspend fun pruneOldEvents(maxRecords: Int = 5000)
 }
 
-data class SongStats(val songHash: String, val skipCount: Int)
+data class SongStats(val songId: String, val skipCount: Int)

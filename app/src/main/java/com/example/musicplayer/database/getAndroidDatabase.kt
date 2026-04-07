@@ -10,5 +10,6 @@ fun getAndroidDatabase(context: Context) : MusicDatabase {
         context.applicationContext,
         name = dbFile.absolutePath,
     ).setDriver(BundledSQLiteDriver())
+        .fallbackToDestructiveMigration(true)
         .build()
 }

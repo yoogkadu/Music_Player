@@ -27,7 +27,7 @@ class AndroidMusicFilesApi (private val context : Context) : MusicFilesApi {
                 MediaStore.Audio.Media.ALBUM,
                 MediaStore.Audio.Media.ALBUM_ARTIST,
             )
-            val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+            val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.SIZE} >= 102400"
             val sortOrder = "${MediaStore.Audio.Media.DATE_ADDED} DESC"
 
             val uri= MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
