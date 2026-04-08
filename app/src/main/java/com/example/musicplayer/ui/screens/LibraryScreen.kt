@@ -51,7 +51,7 @@ fun LibraryScreen(
     songList : List<Song>,
     onCreatePlaylist : (playlistName : String, songList : List<Song> ) -> Unit
 ) {
-    Box(){
+    Box{
         var isAddScreenOpen by remember { mutableStateOf(false) }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

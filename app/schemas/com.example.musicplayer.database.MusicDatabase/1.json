@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "a193d18ccbe3464566421ea58ac1259e",
+    "identityHash": "ed2bb5a4b205b9271ab2463ae8458142",
     "entities": [
       {
         "tableName": "songs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `mediaStoreId` INTEGER NOT NULL, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `artist` TEXT NOT NULL, `album` TEXT NOT NULL, `albumArtist` TEXT NOT NULL, `isFavorite` INTEGER NOT NULL, `dateAdded` INTEGER NOT NULL, `dateModified` INTEGER NOT NULL, PRIMARY KEY(`songId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `mediaStoreId` INTEGER NOT NULL, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `artist` TEXT NOT NULL, `album` TEXT NOT NULL, `albumArtist` TEXT NOT NULL, `isFavorite` INTEGER NOT NULL, `dateAdded` INTEGER NOT NULL, `dateModified` INTEGER NOT NULL, `songHash` TEXT NOT NULL, PRIMARY KEY(`songId`))",
         "fields": [
           {
             "fieldPath": "songId",
@@ -66,6 +66,12 @@
             "fieldPath": "dateModified",
             "columnName": "dateModified",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "songHash",
+            "columnName": "songHash",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
@@ -476,7 +482,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a193d18ccbe3464566421ea58ac1259e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ed2bb5a4b205b9271ab2463ae8458142')"
     ]
   }
 }

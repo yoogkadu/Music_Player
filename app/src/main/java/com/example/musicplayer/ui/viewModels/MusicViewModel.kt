@@ -1,18 +1,16 @@
 package com.example.musicplayer.ui.viewModels
 
 import android.util.Log
-import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import com.example.musicplayer.data.DataStoreInterface
 import com.example.musicplayer.data.MusicController
 import com.example.musicplayer.data.MusicRepository
 import com.example.musicplayer.data.Song
 import com.example.musicplayer.database.DataBaseInterface
 import com.example.musicplayer.database.table.PlaylistEntity
-import com.example.musicplayer.database.table.PlaylistSongCrossRef
-import com.example.musicplayer.database.table.SongEntity
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,15 +18,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
 class MusicViewModel(
     private val musicRepository: MusicRepository,
@@ -44,7 +37,9 @@ class MusicViewModel(
         val currentQueueSelection: MusicCurrentQueueSelection = MusicCurrentQueueSelection.SongListSongQueue,
         val currentMediaId : String? = null,
         val isPlaying: Boolean = false,
-        val playListName : String? = null
+        val playListName : String? = null,
+        val unshuffledQueueIndex : List<String> = emptyList(),
+        val isShuffled : Boolean = false
     )
     private data class SlowUpdateMusicState(
         val isLoading: Boolean = false,
@@ -81,7 +76,8 @@ class MusicViewModel(
             currentQueue = local.currentQueue,
             selectedAlbum = local.selectedAlbum ?: "",
             albums = slow.albums,
-            playlists = slow.playlists
+            playlists = slow.playlists,
+            isShuffled = local.isShuffled
         )
     }.stateIn(
         scope = viewModelScope,
@@ -183,10 +179,19 @@ class MusicViewModel(
                 currentQueueSelection=currentQueueSelection,
                 currentQueue = _slowUpdateLocalState.value.songs
             )
-            is MusicCurrentQueueSelection.PlaylistSongQueue -> _localState.value = _localState.value.copy(
-                currentQueueSelection=currentQueueSelection,
+            is MusicCurrentQueueSelection.PlaylistSongQueue -> {
+                val targetPlaylist = _slowUpdateLocalState.value.playlists.keys.find {
+                    it.playlistId==currentQueueSelection.playlistId.toLong()
+                }
+                _localState.update {
+                    it.copy(
+                        currentQueueSelection = currentQueueSelection,
+                        currentQueue = _slowUpdateLocalState.value.playlists[targetPlaylist] ?: emptyList()
+                    )
+                }
+            }
 
-            )
+
         }
     }
 
@@ -206,6 +211,57 @@ class MusicViewModel(
         }
         player.value?.seekToPrevious()
     }
+    fun toggleShuffle(){
+        val currentState = _localState.value
+        if(!currentState.isShuffled){
+            val unShuffledQueue = currentState.currentQueue.map { it.id }
+            val currentSong = currentState.currentQueue.find { it.id ==currentState.currentMediaId }
+            val otherSongs = currentState.currentQueue.filter { it.id != currentState.currentMediaId }.shuffled()
+            val shuffledQueue = listOfNotNull(currentSong) + otherSongs
+            _localState.update {
+                it.copy(
+                    isShuffled = true,
+                    unshuffledQueueIndex = unShuffledQueue,
+                    currentQueue = shuffledQueue
+                )
+            }
+            updateQueueSeamlessly(shuffledQueue, 0,_fastUpdateLocalState.value.currentPosition)
+        }
+        else{
+            val originalIds = currentState.unshuffledQueueIndex
+            val masterSongs = _slowUpdateLocalState.value.songs
+            val originalQueue = originalIds.mapNotNull { id ->
+                masterSongs.find { it.id == id }
+            }
+            val newIndex = originalQueue.indexOfFirst { it.id == currentState.currentMediaId }
+            _localState.update {
+                it.copy(
+                    isShuffled = false,
+                    currentQueue = originalQueue,
+                    unshuffledQueueIndex = emptyList()
+                )
+            }
+            musicController.load(originalQueue, if (newIndex != -1) newIndex else 0)
+        }
+    }
+    fun updateQueueSeamlessly(songs: List<Song>, startIndex: Int, startPositionMs: Long) {
+        val mediaItems = songs.map { it.toMediaItem() }
+
+        player.value?.setMediaItems(mediaItems, startIndex, startPositionMs)
+    }
+    fun Song.toMediaItem(): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(this.id) // Use your stable ID string here
+            .setUri(this.uri)    // The content URI from MediaStore
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(this.title)
+                    .setArtist(this.artist)
+                    .setAlbumTitle(this.album)
+                    .build()
+            )
+            .build()
+    }
     fun addOrUpdateSongsInDb(songs : List<Song>){
         viewModelScope.launch {
             dataBaseInterface.addOrUpdateSongs(songs)
@@ -223,9 +279,13 @@ class MusicViewModel(
                 dataBaseInterface.getAllPlaylistSongs(),
                 _slowUpdateLocalState.map { it.songs }.distinctUntilChanged()
             ) { playlistSongs, masterSongs ->
+                val songLookup = masterSongs.associateBy { it.stableId }
                 playlistSongs.groupBy(
-                    keySelector = { PlaylistEntity(playlistId = it.playlistId, name = it.playlistName, createdAt = it.createdAt) },
-                    valueTransform = { masterSongs.find { song -> song.matchSongWithEntity(it.songId) } }
+                    keySelector = {
+                        playlistObj ->
+                        PlaylistEntity(playlistObj.playlistId,playlistObj.playlistName,playlistObj.createdAt)
+                    },
+                    valueTransform = {songLookup[it.songId]}
                 ).mapValues { entry -> entry.value.filterNotNull() }
             }.collect { map ->
                 _slowUpdateLocalState.update {
@@ -281,14 +341,15 @@ data class MusicUiState(
     val currentQueue : List<Song> = emptyList(),
     val albums: Map<String, List<Song>> = emptyMap(),
     val playlists: Map<PlaylistEntity, List<Song>> = emptyMap(),
-    val selectedAlbum: String = ""
+    val selectedAlbum: String = "",
+    val isShuffled: Boolean = false
 )
 
 sealed interface MusicCurrentQueueSelection {
     data class SearchedSongQueue(val searchText: String) : MusicCurrentQueueSelection
     data class AlbumSongQueue(val album: String) : MusicCurrentQueueSelection
     object SongListSongQueue : MusicCurrentQueueSelection
-    data class PlaylistSongQueue(val playlistName : String) : MusicCurrentQueueSelection
+    data class PlaylistSongQueue(val playlistId : String) : MusicCurrentQueueSelection
 }
 
 

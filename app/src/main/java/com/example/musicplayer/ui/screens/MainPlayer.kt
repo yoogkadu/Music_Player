@@ -40,10 +40,16 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import com.example.musicplayer.R
 import com.example.musicplayer.data.Song
 import com.example.musicplayer.nav.TopAppBar
 import com.example.musicplayer.ui.theme.MusicPlayerTheme
+
 
 @Composable
 fun MainPlayer(modifier: Modifier = Modifier,
@@ -52,146 +58,201 @@ fun MainPlayer(modifier: Modifier = Modifier,
                onSeek : (Long)->Unit,
                totalDuration : Long,
                isPlaying: Boolean,
+               isShuffled: Boolean = false,
+               isRepeatEnabled: Boolean = false,
                onTogglePlay : ()->Unit,
                onSkipNext : ()->Unit,
                onSkipPrevious : ()->Unit,
+               onToggleShuffle: () -> Unit,
+               onToggleRepeat: () -> Unit = {},
                onBackAction: ()->Unit
 ) {
     val context= LocalContext.current
     val placeholder =painterResource(R.drawable.baseline_music_note_24)
 
-    // 2. Local state: This is what the Slider actually "looks" at
     var localSliderValue by remember { mutableFloatStateOf(0f) }
-
-    // 3. The "Gate": Are we currently scrubbing?
     var isUserScrubbing by remember { mutableStateOf(false) }
+
     LaunchedEffect(currentPosition) {
         if (!isUserScrubbing) {
             localSliderValue = currentPosition.toFloat()
         }
     }
-    Surface(modifier.fillMaxSize()) {
 
-
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface
+    ) {
         Column(
-            modifier = Modifier,
+            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TopAppBar(modifier = Modifier
-            , onClick = onBackAction)
+            TopAppBar(
+                modifier = Modifier.padding(top = 16.dp),
+                onClick = onBackAction
+            )
+
             BackHandler(enabled = true) {
                 onBackAction()
             }
 
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(song?.albumArtUri)
-                    .placeholder(R.drawable.baseline_music_note_24)
-                    .build(),
-                contentDescription = song?.artist,
-                placeholder = placeholder,
-                error = placeholder,
-                fallback = placeholder,
-                modifier = modifier
-                    .padding(20.dp)
-                    .size(400.dp)
-                    .clickable(onClick = onTogglePlay),
-                contentScale = ContentScale.Fit
-            )
-            Spacer(modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp))
-            Text(
-                song?.title ?: stringResource(R.string.unknown_title),
-                style = MaterialTheme.typography.headlineMedium,
-                maxLines = 1,
-                modifier=Modifier.basicMarquee()
-            )
-            Text(
-                song?.artist ?: stringResource(R.string.unknown_artist),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray,
-                modifier=Modifier.basicMarquee()
-            )
+            Spacer(modifier = Modifier.weight(0.5f))
 
-            Slider(
-                value = localSliderValue.coerceIn(0f, totalDuration.toFloat().coerceAtLeast(0f)),
-                onValueChange = {
-                    isUserScrubbing = true
-                    localSliderValue = it
-                },
-                onValueChangeFinished = {
-                    isUserScrubbing = false
-                    onSeek(localSliderValue.toLong())
-                },
-                valueRange = 0f..totalDuration.toFloat().coerceAtLeast(1f),
-                modifier = Modifier.fillMaxWidth(),
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    inactiveTickColor = Color.Transparent
-                )
-
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Album Art
+            Surface(
+                modifier = Modifier
+                    .size(320.dp)
+                    .clip(RoundedCornerShape(28.dp)),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 4.dp,
+                shadowElevation = 8.dp
             ) {
-                Text(formatTime(currentPosition.coerceIn(0, totalDuration.coerceAtLeast(1L))
-                ))
-                Text(formatTime(totalDuration.coerceAtLeast(1L)
-
-                ))
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(song?.albumArtUri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    placeholder = placeholder,
+                    error = placeholder,
+                    fallback = placeholder,
+                    modifier = Modifier.fillMaxSize().clickable(onClick = onTogglePlay),
+                    contentScale = ContentScale.Crop
+                )
             }
 
+            Spacer(modifier = Modifier.weight(0.5f))
+
+            // Title and Artist
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = song?.title ?: stringResource(R.string.unknown_title),
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = song?.artist ?: stringResource(R.string.unknown_artist),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Progress Slider
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Slider(
+                    value = localSliderValue.coerceIn(0f, totalDuration.toFloat().coerceAtLeast(0f)),
+                    onValueChange = {
+                        isUserScrubbing = true
+                        localSliderValue = it
+                    },
+                    onValueChangeFinished = {
+                        isUserScrubbing = false
+                        onSeek(localSliderValue.toLong())
+                    },
+                    valueRange = 0f..totalDuration.toFloat().coerceAtLeast(1f),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    )
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = formatTime(currentPosition.coerceIn(0, totalDuration.coerceAtLeast(1L))),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formatTime(totalDuration.coerceAtLeast(1L)),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Playback Controls
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 48.dp)
             ) {
-                IconButton(onClick = onSkipPrevious) {
+                IconButton(onClick = onToggleShuffle) {
                     Icon(
-                        painterResource(R.drawable.round_skip_previous_24),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp)
+                        painter = painterResource(R.drawable.round_shuffle_24),
+                        contentDescription = "Shuffle",
+                        tint = if (isShuffled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
+
+                IconButton(onClick = onSkipPrevious) {
+                    Icon(
+                        painter = painterResource(R.drawable.round_skip_previous_24),
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
                 FloatingActionButton(
                     onClick = onTogglePlay,
                     shape = CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                 ) {
                     Icon(
-                        if (isPlaying) painterResource(R.drawable.rounded_pause_24) else painterResource(
-                            R.drawable.rounded_play_arrow_24
-                        ),
-                        contentDescription = null,
+                        painter = if (isPlaying) painterResource(R.drawable.rounded_pause_24) 
+                                 else painterResource(R.drawable.rounded_play_arrow_24),
+                        contentDescription = if (isPlaying) "Pause" else "Play",
                         modifier = Modifier.size(40.dp)
                     )
                 }
+
                 IconButton(onClick = onSkipNext) {
                     Icon(
-                        painterResource(R.drawable.round_skip_next_24),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp)
+                        painter = painterResource(R.drawable.round_skip_next_24),
+                        contentDescription = "Next",
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                IconButton(onClick = onToggleRepeat) {
+                    Icon(
+                        painter = painterResource(R.drawable.round_repeat_24),
+                        contentDescription = "Repeat",
+                        tint = if (isRepeatEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
         }
     }
-
 }
 
-@Preview
-@Composable
-private fun MainPlayerPreview() {
-    MusicPlayerTheme() {
-        MainPlayer(Modifier, song, 0, {}, 0, false, {}, {},{},{})
-    }
-}
+//@Preview
+//@Composable
+//private fun MainPlayerPreview() {
+//    MusicPlayerTheme() {
+//        MainPlayer(Modifier, song, 0, {}, 0, false, {}, {},{},{})
+//    }
+//}
 
 val song = Song(
     "123",
@@ -209,25 +270,3 @@ fun formatTime(ms: Long): String {
     val seconds = totalSeconds % 60
     return "%02d:%02d".format(minutes, seconds)
 }
-
-//@Composable
-//fun UsableSlider(modifier: Modifier = Modifier,
-//                  currentPosition: Float,
-//                  onSeek : (Float)->Unit,
-//                  totalDuration : Float,
-//                  isPlaying: Boolean,
-//                  userScrubbing: ()->Unit,
-//                  userFinishedScrubbing : (Float)->Unit,
-//                  color: SliderColors = SliderDefaults.colors()
-//                  ) {
-//    val safeCurrentPosition = currentPosition.coerceIn(0f, totalDuration.coerceAtLeast(1f))
-//    val safeTotalDuration = totalDuration.coerceAtLeast(1f)
-//    Slider(
-//        value = safeCurrentPosition,
-//        o
-//        onValueChangeFinished = {},
-//
-//
-//    )
-//
-//}

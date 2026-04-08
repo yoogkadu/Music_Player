@@ -12,7 +12,7 @@ class AndroidDataStoreInterface(private val dataStore: DataStore<Preferences>) :
 
     private object PreferencesKeys {
         val QUEUE_TYPE = stringPreferencesKey("queue_type")
-        val QUEUE_ARGUMENT = stringPreferencesKey("queue_argument") // For Album Name or Search Text
+        val QUEUE_ARGUMENT = stringPreferencesKey("queue_argument")
         val LAST_SONG_ID = stringPreferencesKey("last_song_id")
     }
 
@@ -35,7 +35,7 @@ class AndroidDataStoreInterface(private val dataStore: DataStore<Preferences>) :
                 }
                 is MusicCurrentQueueSelection.PlaylistSongQueue -> {
                     preferences[PreferencesKeys.QUEUE_TYPE] = "PLAYLIST"
-                    preferences[PreferencesKeys.QUEUE_ARGUMENT] = selection.playlistName
+                    preferences[PreferencesKeys.QUEUE_ARGUMENT] = selection.playlistId
                 }
             }
         }

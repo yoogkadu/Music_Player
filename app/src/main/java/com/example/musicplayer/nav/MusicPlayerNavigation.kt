@@ -3,9 +3,14 @@ package com.example.musicplayer.nav
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,14 +65,19 @@ import com.example.musicplayer.ui.screens.LibraryScreen
 import com.example.musicplayer.ui.screens.SearchScreen
 import com.example.musicplayer.ui.screens.SongListScreen
 import com.example.musicplayer.ui.theme.MusicPlayerTheme
+import com.example.musicplayer.ui.screens.PlaylistContentListScreen
+import com.example.musicplayer.ui.screens.LibraryItems
+import com.example.musicplayer.ui.screens.PlaybackListScreen
 import com.example.musicplayer.ui.viewModels.BootStrapViewModel
 import com.example.musicplayer.ui.viewModels.MusicCurrentQueueSelection
 import com.example.musicplayer.ui.viewModels.MusicViewModel
-import com.example.musicplayer.ui.screens.PlaylistContentListScreen
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
+
+
 
 
 @Composable
@@ -195,30 +205,38 @@ fun MusicPlayerNavigation(modifier: Modifier= Modifier,
 
                        )
                    }
-                    AnimatedVisibility(
-                        visible = isMainMusicPLayerVisible,
-                        enter = slideInVertically(initialOffsetY = { it }),
-                        exit = slideOutVertically(targetOffsetY = { it })
-                    ) {
-                        val totalDuration = musicViewModel.player.value?.duration ?: 1L
-                        MainPlayer(
-                            song = musicUiState.value.currentSong,
-                            currentPosition = musicUiState.value.currentPosition,
-                            onSeek = { musicViewModel.player.value?.seekTo(it) },
-                            totalDuration = totalDuration,
-                            onTogglePlay = { musicViewModel.togglePlayPause() },
-                            onSkipNext = {
-                                musicViewModel.skipToNext()
-                            },
-                            isPlaying = musicUiState.value.isPlaying,
-                            onSkipPrevious = {
-                                musicViewModel.skipToPrevious()
-                            },
-                            onBackAction = {
-                                isMainMusicPLayerVisible=false
-                            }
-                        )
-                    }
+                     AnimatedVisibility(
+                         visible = isMainMusicPLayerVisible,
+                         enter = slideInVertically(
+                             initialOffsetY = { it },
+                             animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing)
+                         ) + fadeIn(animationSpec = tween(durationMillis = 400)),
+                         exit = slideOutVertically(
+                             targetOffsetY = { it },
+                             animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing)
+                         ) + fadeOut(animationSpec = tween(durationMillis = 400))
+                     ) {
+                         val totalDuration = musicViewModel.player.value?.duration ?: 1L
+                         MainPlayer(
+                             song = musicUiState.value.currentSong,
+                             currentPosition = musicUiState.value.currentPosition,
+                             onSeek = { musicViewModel.player.value?.seekTo(it) },
+                             totalDuration = totalDuration,
+                             onTogglePlay = { musicViewModel.togglePlayPause() },
+                             onSkipNext = {
+                                 musicViewModel.skipToNext()
+                             },
+                             isPlaying = musicUiState.value.isPlaying,
+                             isShuffled = musicUiState.value.isShuffled,
+                             onToggleShuffle = { musicViewModel.toggleShuffle() },
+                             onSkipPrevious = {
+                                 musicViewModel.skipToPrevious()
+                             },
+                             onBackAction = {
+                                 isMainMusicPLayerVisible=false
+                             }
+                         )
+                     }
 
 
 
@@ -281,9 +299,10 @@ fun HomePagerContent(
     createPlaylist: (playlistName : String,songList : List<Song>) -> Unit,
     playlists : Map<PlaylistEntity, List<Song>>
     ) {
-    var isAlbumSelected by rememberSaveable { mutableStateOf(false) }
-    var isPlaylistSelected by rememberSaveable { mutableStateOf(false) }
-    var selectedPlaylist: com.example.musicplayer.database.table.PlaylistEntity? by remember { mutableStateOf(null) }
+    var isAlbumSelected by retain { mutableStateOf(false) }
+    var isPlaylistSelected by retain { mutableStateOf(false) }
+    var selectedPlaylistEntity by retain { mutableStateOf<PlaylistEntity?>(null) }
+
     when (route) {
         is HomeScreenRoute.Home -> Surface(modifier = Modifier.fillMaxSize()){ Text("Hello") }
         is HomeScreenRoute.Search -> SearchScreen(
@@ -319,24 +338,50 @@ fun HomePagerContent(
                 onSongClick(song,MusicCurrentQueueSelection.AlbumSongQueue(selectedAlbum))
             })
         is HomeScreenRoute.Library -> {
-            if (!isPlaylistSelected) {
-                LibraryScreen(
-                    onLibraryItemClick = {},
-                    onPlaylistClick = { playlist -> 
-                        selectedPlaylist = playlist
-                        isPlaylistSelected = true
-                    },
-                    songList = songList,
-                    onCreatePlaylist = createPlaylist,
-                    playlists = playlists
-                )
+            var selectedLibraryItem by retain { mutableStateOf<LibraryItems?>(null) }
+            
+            if (selectedLibraryItem == null) {
+                if (!isPlaylistSelected) {
+                    LibraryScreen(
+                        onLibraryItemClick = { item ->
+                            selectedLibraryItem = item
+                        },
+                        onPlaylistClick = { playlist ->
+                            isPlaylistSelected = true
+                            selectedPlaylistEntity = playlist
+                        },
+                        songList = songList,
+                        onCreatePlaylist = createPlaylist,
+                        playlists = playlists
+                    )
+                } else {
+                    PlaylistContentListScreen(
+                        playlist = selectedPlaylistEntity ?: return@HomePagerContent,
+                        songs = playlists[selectedPlaylistEntity!!] ?: emptyList(),
+                        onBack = { isPlaylistSelected = false },
+                        onSongClick = { song ->
+                            onSongClick(song,
+                                MusicCurrentQueueSelection.PlaylistSongQueue(selectedPlaylistEntity!!.playlistId.toString())
+                            )
+                        }
+                    )
+                }
             } else {
-                PlaylistContentListScreen(
-                    playlist = selectedPlaylist!!,
-                    songs = playlists[selectedPlaylist] ?: emptyList(),
-                    onBack = { isPlaylistSelected = false },
+                val item = selectedLibraryItem!!
+                val title = stringResource(item.stringId)
+                val icon = when(item) {
+                   is LibraryItems.MostPlayed -> painterResource(R.drawable.rounded_home_24) // Placeholder icons
+                   is LibraryItems.Favorites -> painterResource(R.drawable.baseline_music_note_24)
+                   is LibraryItems.RecentlyPlayed -> painterResource(R.drawable.round_list_24)
+                }
+                
+                PlaybackListScreen(
+                    title = title,
+                    icon = icon,
+                    songs = emptyList(), // No functionality yet as requested
+                    onBack = { selectedLibraryItem = null },
                     onSongClick = { song ->
-                        onSongClick(song, MusicCurrentQueueSelection.PlaylistSongQueue(selectedPlaylist!!.name))
+                        onSongClick(song, MusicCurrentQueueSelection.SongListSongQueue)
                     }
                 )
             }

@@ -19,4 +19,5 @@ data class SongEntity(
     val isFavorite : Boolean,
     val dateAdded : Long,
     val dateModified : Long,
+    val songHash : String
 )

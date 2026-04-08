@@ -50,3 +50,6 @@ Never present a blank screen. If a database query (e.g., Most Played, Favorites)
 * A subdued Material 3 Icon (`size = 64.dp`, `alpha = 0.6f`).
 * A brief, non-prescriptive headline (e.g., "No Favorites Yet").
 * A subtle, pill-shaped call-to-action button if applicable (e.g., "Scan Local Storage").
+
+
+***This is a windows system ***

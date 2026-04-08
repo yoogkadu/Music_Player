@@ -1,6 +1,7 @@
 package com.example.musicplayer.data
 
 import android.net.Uri
+import com.example.musicplayer.database.table.SongEntity
 
 data class Song(
     val id: String,
@@ -32,6 +33,25 @@ data class Song(
     }
     fun matchSongWithEntity(songEntityId: String): Boolean {
         return songEntityId==this.id
+    }
+    fun computeMetadataHash(): String {
+        val raw = "$title|$artist|$album|$albumArtist|$duration"
+        return raw.hashCode().toString()
+    }
+    fun toEntity(isFavorite : Boolean = false,dateAdded: Long, dateModified : Long) : SongEntity{
+        return SongEntity(
+            songId = this.stableId,
+            mediaStoreId = this.id.toLong(),
+            title = this.title,
+            duration = this.duration,
+            artist = this.artist,
+            album = this.album,
+            albumArtist = this.albumArtist,
+            isFavorite = isFavorite,
+            dateAdded = dateAdded,
+            dateModified = dateModified,
+            songHash = this.computeMetadataHash(),
+        )
     }
 
 }

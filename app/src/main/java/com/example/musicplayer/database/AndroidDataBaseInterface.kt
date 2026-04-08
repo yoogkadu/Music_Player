@@ -5,6 +5,7 @@ import com.example.musicplayer.database.dao.PlaylistSongInfo
 import com.example.musicplayer.database.table.PlaylistEntity
 import com.example.musicplayer.database.table.PlaylistSongCrossRef
 import com.example.musicplayer.database.table.SongEntity
+import com.example.musicplayer.database.table.PlaybackEventEntity
 import kotlinx.coroutines.flow.Flow
 
 class AndroidDataBaseInterface(private val database: MusicDatabase) : DataBaseInterface{
@@ -30,6 +31,14 @@ class AndroidDataBaseInterface(private val database: MusicDatabase) : DataBaseIn
 
     override suspend fun addOrUpdateSongs(songs: List<Song>) {
         database.songEntityDao().smartUpsert(songs)
+    }
+
+    override fun getRecentSessionHistoryFlow(limit: Int): Flow<List<PlaybackEventEntity>> {
+        return database.playbackEventDao().getRecentSessionHistoryFlow(limit)
+    }
+
+    override suspend fun insertEvent(event: PlaybackEventEntity) {
+        database.playbackEventDao().insertEvent(event)
     }
 
 }

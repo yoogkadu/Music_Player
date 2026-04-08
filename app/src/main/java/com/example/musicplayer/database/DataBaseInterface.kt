@@ -6,6 +6,7 @@ import com.example.musicplayer.database.table.PlaylistEntity
 import com.example.musicplayer.database.table.PlaylistSongCrossRef
 import com.example.musicplayer.database.table.SongEntity
 import kotlinx.coroutines.flow.Flow
+import com.example.musicplayer.database.table.PlaybackEventEntity
 
 interface DataBaseInterface{
     fun getPlaylist() : Flow<List<PlaylistEntity>>
@@ -16,4 +17,7 @@ interface DataBaseInterface{
      fun getAllPlaylistSongs() : Flow<List<PlaylistSongInfo>>
 
     suspend fun addOrUpdateSongs(songs : List<Song>)
+
+    fun getRecentSessionHistoryFlow(limit : Int = 50) : Flow<List<PlaybackEventEntity>>
+    suspend fun insertEvent (event : PlaybackEventEntity)
 }

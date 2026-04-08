@@ -19,30 +19,24 @@ interface SongEntityDao {
 
     @Query("SELECT * FROM songs ORDER BY dateAdded DESC")
     fun getAllSongs(): Flow<List<SongEntity>>
-
     @Query("SELECT * FROM songs WHERE songId = :songId LIMIT 1")
-    fun getSongByHash(songId: String): SongEntity?
-
+    suspend fun getSongByHash(songId: String): SongEntity?
     @Query("SELECT * FROM songs where mediaStoreId = :id LIMIT 1")
-    fun getSongByMediaStore(id: Long): SongEntity?
-
+    suspend fun getSongByMediaStore(id: Long): SongEntity?
     @Upsert
     suspend fun  upsertSongs(songs: List<SongEntity>)
-
     @Upsert
     suspend fun upsertSong(song : SongEntity)
-
     @Delete
     suspend fun deleteSong(song : SongEntity)
-
     @Insert(onConflict = IGNORE)
-    suspend fun insertALlBunch(song : List<SongEntity>) : List<Long>
-
+    suspend fun insertAllBunch(song : List<SongEntity>) : List<Long>
     @Update
     suspend fun updateExisting(song : SongEntity)
 
     @Query("""
-        Update songs set title = :title, duration = :duration,
+        Update songs set title = :title,
+        duration = :duration,
         artist = :artist,
         album = :album,
         mediaStoreId = :mediaStoreId,
@@ -62,48 +56,45 @@ interface SongEntityDao {
     )
 
     @Transaction
-    suspend fun smartUpsert(songs : List<Song>)
-    {
-       val songEntities = songs.map {
-           SongEntity(
-               songId = it.stableId,
-               title = it.title,
-               duration = it.duration,
-               mediaStoreId = it.id.toLong(),
-               artist = it.artist,
-               album = it.album,
-               albumArtist = it.albumArtist,
-               isFavorite = false,
-               dateAdded = System.currentTimeMillis(),
-               dateModified = System.currentTimeMillis(),
-           )
-       }
-        val insertResult = insertALlBunch(songEntities)
-        val existingSongs= songEntities.filterIndexed { index, song ->
-            insertResult[index] == -1L
+    suspend fun smartUpsert(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val existingById = getAllSongsDirect().associateBy { it.songId }
+        val toInsert = mutableListOf<SongEntity>()
+        val toUpdate = mutableListOf<SongEntity>()
+        for (song in songs) {
+            val newHash = song.computeMetadataHash()
+            val existing = existingById[song.stableId]
+            when {
+                existing == null -> {
+                    toInsert.add(
+                        song.toEntity(false,now,now)
+                    )
+                }
+                existing.songHash != newHash -> {
+                    toUpdate.add(
+                        existing.copy(
+                            title        = song.title,
+                            duration     = song.duration,
+                            artist       = song.artist,
+                            album        = song.album,
+                            albumArtist  = song.albumArtist,
+                            mediaStoreId = song.id.toLong(),
+                            songHash = newHash,
+                            dateModified = now,
+                        )
+                    )
+                }
+            }
         }
-        if(existingSongs.isNotEmpty()){
-            updateExistingMetadataOnly(existingSongs)
-        }
+
+        if (toInsert.isNotEmpty()) insertAllBunch(toInsert)
+        if (toUpdate.isNotEmpty()) updateBatch(toUpdate)
     }
-    @Transaction
-    suspend fun updateExistingMetadataOnly(songs: List<SongEntity>) {
-        songs.forEach { song ->
-            updateSingleMetadata(
-                song.songId, song.title, song.duration,
-                song.artist, song.album, song.mediaStoreId
-            )
-        }
-    }
-    @Query("""
-        UPDATE songs SET 
-            title = :title, duration = :duration, 
-            artist = :artist, album = :album, 
-            mediaStoreId = :mediaStoreId 
-        WHERE songId = :songId
-    """)
-    suspend fun updateSingleMetadata(
-        songId: String, title: String, duration: Long,
-        artist: String, album: String, mediaStoreId: Long
-    )
+
+    @Update
+    suspend fun updateBatch(songs: List<SongEntity>)
+
+    @Query("SELECT * FROM songs")
+    suspend fun getAllSongsDirect(): List<SongEntity>
 }
